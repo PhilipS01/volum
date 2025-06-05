@@ -9,6 +9,7 @@ Python has long been the go-to language for data scientists and hobbyists to vis
 - **Scriptable** objects (e.g., dynamic data plots, script runner)
 - Built-in objects like Box, Sphere, Plane, Plot2D, and Plot3D
 - Transform objects (position, rotation, scale) with a clean API
+- JavaScript scene loader takes scenes and builds them in the browser
 - Plugin architecture to add new object types or behaviors
 - Scene serialization to JSON for use in a viewer
 - Optional RESTful interface to sync scene state to a browser
