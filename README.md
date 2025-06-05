@@ -2,8 +2,7 @@
 
 [**Volum**](https://volumeditor.tech/) is a modular, extensible Python toolkit for building and rendering interactive 3D scenes that can integrate data visualizations, plots, and geometry — all programmable from Python.
 
-Python has long been the go-to language for data scientists and hobbyists to visualize data in static, two-dimensional formats. Volum transforms this experience by enabling true 3D visualization—making it easy to convert and explore your 2D data in immersive,
-true three-dimensional environments. Because it's **plugins** from the ground up, it makes extending functionality a breeze.
+Python has long been the go-to language for data scientists and hobbyists to visualize data in static, two-dimensional formats. Volum transforms this experience by enabling true 3D visualization—making it easy to convert and explore your 2D data in immersive, three-dimensional environments. Because it's **plugins** from the ground up, it makes extending functionality a breeze.
 
 ## ✨ Features
 - Define 3D scenes programmatically in Python
