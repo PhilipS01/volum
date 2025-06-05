@@ -116,7 +116,4 @@ Coming soon ...
 3. Dynamic data sources & animation support
 4. Desktop version via Electron or Tauri (if the web editor was a success)
 
-## 📄 License
-MIT License
-
 _Built with 💚 for devs who think in both code and space._
