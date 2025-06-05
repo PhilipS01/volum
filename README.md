@@ -10,7 +10,7 @@ Python has long been the go-to language for data scientists and hobbyists to vis
 - Built-in objects like Box, Sphere, Plane, Plot2D, and Plot3D
 - Transform objects (position, rotation, scale) with a clean API
 - Plugin architecture to add new object types or behaviors
-- Scene serialization to JSON for use in a Three.js viewer
+- Scene serialization to JSON for use in a viewer
 - Optional RESTful interface to sync scene state to a browser
 - Renders via [Three.js](https://github.com/mrdoob/three.js), with support for more WebGL frameworks coming
 
