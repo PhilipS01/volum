@@ -111,9 +111,10 @@ The Python package is designed to pair with a browser-based 3D viewer built usin
 Coming soon ...
 
 ## 🛠️ Roadmap
-1. Web-based editor UI (Svelte + Three.js)
-2. Plugin marketplace system
-3. Dynamic data sources & animation support
-4. Desktop version via Electron or Tauri (if the web editor was a success)
+1. Basic Viewer (and perhaps in jupyter notebooks)
+2. Web-based editor UI (Svelte + Three.js)
+3. Plugin marketplace system
+4. Dynamic data sources & animation support
+5. Desktop version via Electron or Tauri (if the web editor was a success)
 
 _Built with 💚 for devs who think in both code and space._
