@@ -13,7 +13,7 @@ Python has long been the go-to language for data scientists and hobbyists to vis
 - Scene serialization to JSON for use in a viewer
 - JavaScript scene loader takes scenes and builds them in the browser
 - Renders via [Three.js](https://github.com/mrdoob/three.js), with support for more WebGL frameworks coming
-- Optional RESTful interface to sync scene state to a browser
+- RESTful interface to sync scene state to a browser
 
 ## 📦 Installation
 
