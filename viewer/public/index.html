@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Volum Viewer</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script type="module">
+    // 1) import core ThreeJS modules from CDN
+    import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.174.0/three.module.js';
+    import { OrbitControls } from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.174.0/examples/jsm/controls/OrbitControls.js';
+    // 2) import your scene loader
+    import { loadSceneFromJSON } from '/viewer/src/scene_loader.js';
+
+    // 3) create scene, camera, renderer
+    const scene    = new THREE.Scene();
+    const camera   = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 100 );
+    camera.position.set( 2, 2, 2 );
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    document.body.appendChild( renderer.domElement );
+
+    // 4) add orbit controls
+    const controls = new OrbitControls( camera, renderer.domElement );
+    controls.enableDamping = true;
+
+    // 5) load your external scene (e.g. a JSON or glTF)
+    loadSceneFromJSON('path/to/scene.json', scene)
+      .then(() => {
+        console.log('External scene loaded');
+      })
+      .catch(err => {
+        console.error('Failed to load scene:', err);
+        // fallback: simple box
+        const geo = new THREE.BoxGeometry( 1, 1, 1 );
+        const mat = new THREE.MeshNormalMaterial();
+        scene.add( new THREE.Mesh( geo, mat ) );
+      });
+
+    // 6) handle resize
+    window.addEventListener( 'resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize( window.innerWidth, window.innerHeight );
+    });
+
+    // 7) render loop
+    function animate() {
+      requestAnimationFrame( animate );
+      controls.update();
+      renderer.render( scene, camera );
+    }
+    animate();
+  </script>
+</body>
+</html>

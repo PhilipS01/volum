@@ -1,7 +1,10 @@
-from core.interfaces import Serializable
+from core.scene import SceneObject
 
-class Plane(Serializable):
+
+class Plane(SceneObject):
+    """Represents a plane in 3D space defined by a point and a normal vector."""
     def __init__(self, position, normal):
+        super().__init__()
         self.position = position  # A point on the plane
         self.normal = normal      # A vector normal to the plane
 
@@ -15,3 +18,4 @@ class Plane(Serializable):
             "position": self.position,
             "normal": self.normal
         }
+    

@@ -1,8 +1,9 @@
-from core.interfaces import Serializable
+from core.scene import SceneObject
 
-class Line(Serializable):
+class Line(SceneObject):
     """Represents a line segment in 3D space."""
     def __init__(self, start: list, end: list):
+        super().__init__()
         self.start = start  # Start point of the line
         self.end = end      # End point of the line
 
@@ -18,3 +19,4 @@ class Line(Serializable):
             "start": self.start,
             "end": self.end
         }
+    

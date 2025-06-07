@@ -1,7 +1,10 @@
-from core.interfaces import Serializable
+from core.scene import SceneObject
 
-class Sphere(Serializable):
+
+class Sphere(SceneObject):
+    """Represents a sphere in 3D space."""
     def __init__(self, radius, color: str = "gray"):
+        super().__init__()
         self.radius = radius
         self.color = color
 
@@ -17,3 +20,4 @@ class Sphere(Serializable):
             "radius": self.radius,
             "color": self.color
         }
+    

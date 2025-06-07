@@ -1,7 +1,8 @@
-from core.interfaces import Serializable
+from core.scene import SceneObject
 
-class Cylinder(Serializable):
+class Cylinder(SceneObject):
     def __init__(self, radius, height):
+        super().__init__()
         self.radius = radius
         self.height = height
 
