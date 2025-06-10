@@ -103,6 +103,9 @@ volum/
 ├── cli/             # CLI entry point
 ├── examples/        # Example scenes
 ├── tests/           # Tests
+viewer/
+├── public/          # Static files for viewer
+├── src/             # Scene loading, WebSockets, Three.js
 ```
 ## 📺 Viewer
 The Python package is designed to pair with a browser-based 3D viewer built using Three.js and Svelte (not included in this repo). You can send scenes to the viewer via the REST API.
