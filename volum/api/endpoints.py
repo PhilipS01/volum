@@ -1,6 +1,13 @@
-from fastapi import APIRouter, HTTPException
+import os
+import json
+import asyncio
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 from core.scene import Scene
 from core.builder import build_object_from_dict
@@ -9,6 +16,9 @@ from plugins.base_shapes import BaseShapesPlugin
 #from plugins.data_plots import DataPlotsPlugin
 
 router = APIRouter()
+
+# Read watched file paths from env vars (set by run_live.py)
+SCENE_PATH  = os.getenv("SCENE_PATH")
 
 # Initialize global Scene and registry
 scene = Scene()
@@ -69,3 +79,58 @@ def update_object(object_id: str, update: SceneObjectPayload):
 def delete_scene():
     scene.objects.clear()
     return {"status": "ok"}
+
+
+# Manage WebSocket connections for live updates
+class ConnectionManager:
+    def __init__(self):
+        self.active: set[WebSocket] = set()
+
+    async def connect(self, ws: WebSocket):
+        await ws.accept()
+        self.active.add(ws)
+
+    def disconnect(self, ws: WebSocket):
+        self.active.remove(ws)
+
+    async def broadcast(self, message: str):
+        for ws in list(self.active):
+            try:
+                await ws.send_text(message)
+            except WebSocketDisconnect:
+                self.disconnect(ws)
+
+# Watchdog File Handler
+class LiveFileHandler(FileSystemEventHandler):
+    def __init__(self, path: str, event_name: str):
+        self.watch_path = os.path.abspath(path)
+        self.event_name = event_name
+
+    def on_modified(self, event):
+        if os.path.abspath(event.src_path) == self.watch_path:
+            # schedule a broadcast on the event loop
+            asyncio.get_event_loop().create_task(
+                manager.broadcast(self.event_name)
+            )
+
+@router.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    await manager.connect(ws)
+    try:
+        while True:
+            # Just keep the connection alive
+            await ws.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(ws)
+
+
+manager = ConnectionManager()
+observer = Observer()
+# Start observing the scene file if provided
+if SCENE_PATH:
+    observer.schedule(
+        LiveFileHandler(SCENE_PATH,  "scene_updated"),
+        os.path.dirname(SCENE_PATH), recursive=False
+    )
+
+observer.start()

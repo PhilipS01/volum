@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.174.0/three.module.js';
 
 // Map object types to geometry constructors or custom builders
 const typeMap = {
@@ -48,6 +48,27 @@ function buildObject(obj) {
   const mesh = new THREE.Mesh(geometry, material);
 
   return mesh;
+}
+
+// Helper: load one volume and return a Promise of DataTexture3D
+function loadVolumeTexture(url, { width, height, depth, format = THREE.RedFormat, type = THREE.UnsignedByteType }) {
+  return fetch(url)
+    .then(res => {
+      if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.statusText}`);
+      return res.arrayBuffer();
+    })
+    .then(buffer => {
+      const array = (type === THREE.UnsignedByteType)
+        ? new Uint8Array(buffer)
+        : new Float32Array(buffer);
+      const tex = new THREE.DataTexture3D(array, width, height, depth);
+      tex.format = format;
+      tex.type   = type;
+      tex.minFilter = tex.magFilter = THREE.LinearFilter;
+      tex.unpackAlignment = 1;
+      tex.needsUpdate = true;
+      return tex;
+    });
 }
 
 function toRadians(degrees) {
