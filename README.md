@@ -53,7 +53,7 @@ print(scene.serialize())  # outputs scene as JSON
 The plugin system allows developers to extend Volum by adding new object types, behaviors, or utilities without modifying the core library. Each plugin is a Python class that inherits from the ScenePlugin interface and registers new functionality with the internal object registry.
 
 ### How It Works:
-1. Define a new scene object (e.g., a custom geometry or data visualization)
+1. Define a new SceneObject (e.g., a custom geometry or data visualization)
 2. Implement the object class, including a `to_dict()` method
 3. Create a plugin class that inherits from `ScenePlugin`
 4. Register the object inside the plugin's `register()` method
@@ -89,7 +89,7 @@ print(scene.serialize())
 Plugins can be organized in separate files or even distributed as standalone Python packages for reuse and sharing.
 
 ## 🧠 Object Model
-Each scene object must implement a `to_dict()` method for serialization. Optional interfaces include:
+Each SceneObject must implement a `to_dict()` method for serialization. Optional interfaces include:
 - `Serializable` – provides `to_dict()`
 - `Scriptable` – supports dynamic Python scripting (e.g., `run_script(code)`)
 
@@ -117,4 +117,4 @@ Coming soon ...
 4. Dynamic data sources & animation support
 5. Desktop version via Electron or Tauri (if the web editor was a success)
 
-_Built with 💚 for devs who think in both code and space._
+_Built with 💜 for devs who think in both code and space._
