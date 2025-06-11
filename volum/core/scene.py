@@ -1,10 +1,12 @@
 from .registry import ObjectRegistry
 import uuid
+from typing import Dict, Any
+
 
 class Scene:
     def __init__(self):
         self.registry = ObjectRegistry()
-        self.objects = {}
+        self.objects: Dict[str, Any] = {}
 
     def load_plugins(self, plugins):
         for plugin in plugins:
@@ -19,7 +21,7 @@ class Scene:
         else:
             obj = obj_or_type
 
-        # ensure the object is a SceneObject
+        # Ensure the object is a SceneObject
         if not isinstance(obj, SceneObject):
             raise TypeError(f"Object must be a SceneObject, got {type(obj)}")
 
@@ -29,7 +31,7 @@ class Scene:
 
     def serialize(self):
         return [obj.to_dict() for obj in self.objects.values()]
-    
+
 
 class SceneObject:
     def __init__(self, id=None):

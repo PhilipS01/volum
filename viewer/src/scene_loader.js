@@ -1,4 +1,5 @@
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.174.0/three.module.js';
+import * as THREE from './three-proxy.js';
+
 
 // Map object types to geometry constructors or custom builders
 const typeMap = {
@@ -13,21 +14,28 @@ const typeMap = {
   Plot2D: (props) => buildPlot2DMesh(props)
 };
 
-// Recursive scene loader
-export function loadSceneFromJSON(sceneJSON, scene) {
+/**
+ * Loads a 3D scene from a JSON object.
+ * @param {Object} sceneJSON - The JSON representation of the scene.
+ * @param {THREE.Scene} scene - The Three.js scene to populate.
+ */
+export async function loadSceneFromJSON(sceneJSON, scene) {
   for (const obj of sceneJSON.objects) {
-    const threeObject = buildObject(obj);
-    if (threeObject) {
-      scene.add(threeObject);
-    }
+    const threeObject = await buildObject(obj);
+    if (threeObject) scene.add(threeObject);
   }
 }
 
-function buildObject(obj) {
+/**
+ * Builds a Three.js object from a JSON representation.
+ * @param {Object} obj - The JSON object describing the 3D object.
+ * @returns {Promise<THREE.Object3D|null>} The constructed Three.js object or null if invalid.
+ */
+async function buildObject(obj) {
   if (!obj || typeof obj !== 'object') return null;
 
   if (obj.type === 'Transform') {
-    const child = buildObject(obj.object); // recursively build child object
+    const child = await buildObject(obj.object); // recursively build child object
     if (!child) return null;
 
     if (obj.position) child.position.set(...obj.position);
@@ -37,20 +45,40 @@ function buildObject(obj) {
     return child;
   }
 
-  const geometryBuilder = typeMap[obj.type];
-  if (!geometryBuilder) {
-    console.warn(`Unknown object type: ${obj.type}`);
-    return null;
+  else if (obj.type === 'Volume') {
+    const tex = await loadVolumeTexture(obj.file_path, {
+      width: obj.width,
+      height: obj.height,
+      depth: obj.depth
+    });
+    return createVolumeProxyMesh(tex, {
+      width: obj.width,
+      height: obj.height,
+      depth: obj.depth,
+      color: obj.color ?? 0xffffff
+    });
   }
 
-  const geometry = geometryBuilder(obj);
-  const material = new THREE.MeshStandardMaterial({ color: obj.color || 'gray' });
-  const mesh = new THREE.Mesh(geometry, material);
+  else {
+    const geometryBuilder = typeMap[obj.type];
+    if (!geometryBuilder) {
+      console.warn(`Unknown object type: ${obj.type}`);
+      return null;
+    }
 
-  return mesh;
+    const geometry = geometryBuilder(obj);
+    const material = new THREE.MeshStandardMaterial({ color: obj.color || 'gray' });
+    const mesh = new THREE.Mesh(geometry, material);
+    return mesh;
+  }
 }
 
-// Helper: load one volume and return a Promise of DataTexture3D
+/**
+ * Loads a 3D volume texture from a URL.
+ * @param {string} url - The URL of the volume data.
+ * @param {Object} param1 - Additional parameters.
+ * @returns {Promise<THREE.DataTexture3D>} A promise that resolves to the loaded 3D texture.
+ */
 function loadVolumeTexture(url, { width, height, depth, format = THREE.RedFormat, type = THREE.UnsignedByteType }) {
   return fetch(url)
     .then(res => {
@@ -71,6 +99,58 @@ function loadVolumeTexture(url, { width, height, depth, format = THREE.RedFormat
     });
 }
 
+/**
+ * Creates a proxy mesh for a 3D volume texture.
+ * @param {THREE.DataTexture3D} dataTex - The 3D texture to use.
+ * @param {Object} param1 - Additional parameters.
+ * @returns {THREE.Mesh} The created mesh.
+ */
+function createVolumeProxyMesh(dataTex, { width, height, depth, color }) {
+  if (!dataTex || !(dataTex instanceof THREE.DataTexture3D)) {
+    throw new Error('Invalid data texture provided to createVolumeProxyMesh');
+  }
+
+  // Simple “proxy” geometry covering the unit cube
+  const geo = new THREE.BoxGeometry(1,1,1);
+
+  // A basic ray-marching shader material (you’d swap in your real GLSL)
+  const mat = new THREE.ShaderMaterial({
+    uniforms: {
+        uDataTex: { value: dataTex },
+        uRes:     { value: new THREE.Vector3(width, height, depth) },
+        uColor:   { value: new THREE.Color(color) },
+        // …plus camera, model-matrix, step-size, etc…
+        },
+        vertexShader: /* glsl */`
+            varying vec3 vPos;
+            void main() {
+                vPos = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: /* glsl */`
+            precision highp float;
+            uniform sampler3D uDataTex;
+            uniform vec3 uRes;
+            uniform vec3 uColor;
+            varying vec3 vPos;
+            void main() {
+                vec3 uvw = vPos * 0.5 + 0.5; // map [-1,1]→[0,1]
+                float intensity = texture(uDataTex, uvw).r;
+                gl_FragColor = vec4(uColor * intensity, intensity);
+            }
+        `,
+        transparent: true,
+    });
+
+    return new THREE.Mesh(geo, mat);
+}
+
+/**
+ * Helper function that converts an array of angles in degrees to radians.
+ * @param {number[]} degrees - The angles in degrees.
+ * @returns {number[]} The angles in radians.
+ */
 function toRadians(degrees) {
   return degrees.map(d => d * Math.PI / 180);
 }

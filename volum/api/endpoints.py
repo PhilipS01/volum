@@ -55,7 +55,7 @@ def create_scene(payload: ScenePayload):
 @router.get("/", summary="Get the current scene as JSON")
 def get_scene():
     serialized = []
-    for obj in scene.objects:
+    for obj in scene.objects.values():
         d = obj.to_dict()
         obj_id = getattr(obj, 'id', None)
         if obj_id:
