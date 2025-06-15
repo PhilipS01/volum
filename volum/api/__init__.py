@@ -56,10 +56,14 @@ app = FastAPI(
 app.include_router(scene_router, prefix="/api/scene", tags=["scene"])
 
 # Serve the index.html file for the viewer
-index_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "viewer", "public", "index.html"))
+public_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "viewer", "public"))
 @app.get("/")
 def serve_index():
-    return FileResponse(index_path)
+    return FileResponse(os.path.join(public_path, "index.html"))
+
+@app.get("/favicon.ico")
+def favicon():
+    return FileResponse(os.path.join(public_path, "favicon.ico"))
 
 # Serve static files for the viewer
 static_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "viewer", "src"))
