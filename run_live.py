@@ -27,7 +27,7 @@ def main():
     os.environ['SCENE_PATH'] = os.path.abspath(args.scene_path)
 
     uvicorn_args = {
-        "app": "volum.api.live:app",
+        "app": "volum.api:app",
         "host": args.host,
         "port": args.port,
     }
@@ -36,8 +36,8 @@ def main():
 
     uvicorn.run(**uvicorn_args)
     # Open the viewer in the default web browser
-    time.sleep(1)  # wait a bit for server to start
-    webbrowser.open(f"http://{args.host}:{args.port}/")
+    #time.sleep(1)  # wait a bit for server to start
+    #webbrowser.open(f"http://{args.host}:{args.port}/")
 
 
 if __name__ == "__main__":

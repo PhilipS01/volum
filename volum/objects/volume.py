@@ -1,4 +1,4 @@
-from core.scene import SceneObject
+from ..core.scene import SceneObject
 
 class Volume(SceneObject):
     """Represents a 3D volume object via a file path."""

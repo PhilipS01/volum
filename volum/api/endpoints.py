@@ -1,18 +1,17 @@
 import os
-import json
 import asyncio
 from pydantic import BaseModel, Field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, FastAPI
 from fastapi.responses import FileResponse
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from core.scene import Scene
-from core.builder import build_object_from_dict
+from ..core.scene import Scene
+from ..core.builder import build_object_from_dict
 # load your plugins
-from plugins.base_shapes import BaseShapesPlugin
+from ..plugins.base_shapes import BaseShapesPlugin
 #from plugins.data_plots import DataPlotsPlugin
 
 router = APIRouter()
@@ -31,7 +30,11 @@ class SceneObjectPayload(BaseModel):
     position: Optional[List[float]] = None
     rotation: Optional[List[float]] = None
     scale: Optional[List[float]] = None
-    color: Optional[List[float]] = None
+    color: Optional[Union[List[float], str]] = None
+    width: Optional[float] = None
+    height: Optional[float] = None
+    depth: Optional[float] = None
+    radius: Optional[float] = None
     # Capture any additional fields (that may be defined by plugins)
     class Config:
         extra = 'allow'
@@ -42,7 +45,7 @@ class ScenePayload(BaseModel):
 @router.post("/", summary="Create or replace the entire scene")
 def create_scene(payload: ScenePayload):
     # Clear existing
-    scene.objects.clear()
+    scene.clear()
 
     for obj_def in payload.objects:
         obj_dict = obj_def.model_dump(exclude_none=True)
@@ -124,6 +127,8 @@ async def websocket_endpoint(ws: WebSocket):
         manager.disconnect(ws)
 
 
+
+# Initialize the connection manager and observer
 manager = ConnectionManager()
 observer = Observer()
 # Start observing the scene file if provided
@@ -133,4 +138,3 @@ if SCENE_PATH:
         os.path.dirname(SCENE_PATH), recursive=False
     )
 
-observer.start()

@@ -1,6 +1,6 @@
-import * as THREE               from './three-proxy.js';
-import { OrbitControls }        from './three-proxy.js';
-import { loadSceneFromJSON }    from './scene_loader.js';
+import * as THREE               from '/static/three-proxy.js';
+import { OrbitControls }        from '/static/three-proxy.js';
+import { loadSceneFromJSON }    from '/static/scene_loader.js';
 
 const canvas = document.getElementById('three-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -20,7 +20,7 @@ function clearScene() {
 const ws = new WebSocket(`ws://${location.host}/scene/ws`);
 ws.onmessage = async ({ data }) => {
     if (data === 'scene_updated') {
-        const json = await fetch('/scene').then(r => r.json());
+        const json = await fetch('/api/scene').then(r => r.json());
         clearScene();
         await loadSceneFromJSON(json, scene);
     }

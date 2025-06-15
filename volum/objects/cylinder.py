@@ -1,4 +1,4 @@
-from core.scene import SceneObject
+from ..core.scene import SceneObject
 
 class Cylinder(SceneObject):
     def __init__(self, radius, height):

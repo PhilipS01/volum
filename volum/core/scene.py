@@ -31,6 +31,16 @@ class Scene:
 
     def serialize(self):
         return [obj.to_dict() for obj in self.objects.values()]
+    
+    def clear(self):
+        """Clear all objects in the scene."""
+        self.objects.clear()
+
+    def save(self, path: str):
+        """Save the current scene to a JSON file."""
+        import json
+        with open(path, 'w') as f:
+            json.dump(self.serialize(), f, indent=2)
 
 
 class SceneObject:

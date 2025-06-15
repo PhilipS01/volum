@@ -1,4 +1,4 @@
-from core.scene import SceneObject
+from ..core.scene import SceneObject
 
 class Box(SceneObject):
     """Represents a box in 3D space."""

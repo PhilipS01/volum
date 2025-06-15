@@ -1,10 +1,10 @@
-from core.plugin import ScenePlugin
-from objects.box import Box
-from objects.sphere import Sphere
-from objects.plane import Plane
-from objects.transform import Transform
-from objects.cylinder import Cylinder
-from objects.line import Line
+from ..core.plugin import ScenePlugin
+from ..objects.box import Box
+from ..objects.sphere import Sphere
+from ..objects.plane import Plane
+from ..objects.transform import Transform
+from ..objects.cylinder import Cylinder
+from ..objects.line import Line
 
 
 class BaseShapesPlugin(ScenePlugin):

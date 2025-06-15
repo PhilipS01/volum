@@ -1,4 +1,4 @@
-from core.scene import SceneObject
+from ..core.scene import SceneObject
 
 
 class Sphere(SceneObject):
