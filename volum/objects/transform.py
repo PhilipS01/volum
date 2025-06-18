@@ -19,6 +19,6 @@ class Transform(SceneObject):
             "position": self.position,
             "rotation": self.rotation,
             "scale": self.scale,
-            "child": self.object.to_dict()
+            "object": self.object.to_dict()
         }
     
