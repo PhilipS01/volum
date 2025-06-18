@@ -21,10 +21,27 @@ controls.enableDamping = true;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; // optional: for softer shadows
 
+// Set up event listeners for UI controls
+document.getElementById('checkbox-light').checked = true;
+document.getElementById('checkbox-light').addEventListener('change', (e) => {
+    const enabled = e.target.checked;
+    toggleAllLights(scene, enabled);
+    console.log(`Lights ${enabled ? 'enabled' : 'disabled'}`);
+});
+
+document.getElementById('checkbox-shadows').checked = true;
+document.getElementById('checkbox-shadows').addEventListener('change', (e) => {
+    const enabled = e.target.checked;
+    toggleAllLightShadows(scene, enabled);
+    console.log(`Shadows ${enabled ? 'enabled' : 'disabled'}`);
+});
+
+
 // Helper to remove all meshes from scene
 function clearScene() {
-  scene.children.slice().forEach(c => scene.remove(c));
-  const axesHelper = new THREE.AxesHelper(3);
+    scene.children.slice().forEach(c => scene.remove(c));
+    // add helpers back in
+    const axesHelper = new THREE.AxesHelper(3);
     scene.add(axesHelper);
 
     const gridHelper = new THREE.GridHelper(10, 10);
@@ -69,4 +86,34 @@ function animate() {
     requestAnimationFrame(animate);
     controls.update();
     renderer.render(scene, camera);
+}
+
+
+/**
+ * Toggles shadow casting for all lights in the scene.
+ * @param {THREE.Scene} scene 
+ * @param {boolean} enabled 
+ */
+function toggleAllLightShadows(scene, enabled) {
+  scene.traverse(obj => {
+    if (obj.isLight && 'castShadow' in obj && obj.shadow) {
+      obj.castShadow = enabled;
+      obj.shadow.mapSize.width = 2048;
+        obj.shadow.mapSize.height = 2048;
+        obj.shadow.needsUpdate = true;
+    }
+  });
+}
+
+/**
+ * Toggles visibility for all lights in the scene.
+ * @param {THREE.Scene} scene 
+ * @param {boolean} enabled 
+ */
+function toggleAllLights(scene, enabled) {
+  scene.traverse(obj => {
+    if (obj.isLight) {
+      obj.visible = enabled;
+    }
+  });
 }

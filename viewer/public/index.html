@@ -5,12 +5,24 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <title>Volum Viewer</title>
   <style>
-    body { margin: 0; overflow: hidden; }
+    body { margin: 0; overflow: hidden; position: relative; }
     canvas { display: block; }
+    #ui-overlay { position: absolute; top: 20px; left: 20px; z-index: 100; display: flex; flex-direction: column; gap: 8px; background: rgba(230, 230, 250, 0.5); color: white; border-radius: 8px; padding: 12px; }
+    .settings-row { display: flex; align-items: center; gap: 8px; }
   </style>
 </head>
 <body>
   <script type="module" src="/static/live_client.js"></script>
   <canvas id="three-canvas"></canvas>
+  <div id="ui-overlay">
+    <div class="settings-row">
+      <input type="checkbox" id="checkbox-light">
+      <label for="checkbox-light">Lights</label>
+    </div>
+    <div class="settings-row">
+      <input type="checkbox" id="checkbox-shadows">
+      <label for="checkbox-shadows">Shadows</label>
+    </div>
+  </div>
 </body>
 </html>

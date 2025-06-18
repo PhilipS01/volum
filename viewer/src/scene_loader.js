@@ -6,6 +6,7 @@ const typeMap = {
   Box: (props) => new THREE.BoxGeometry(props.width, props.height, props.depth),
   Sphere: (props) => new THREE.SphereGeometry(props.radius, 32, 32),
   Plane: (props) => new THREE.PlaneGeometry(props.width, props.height),
+  PointLight: (props) => new THREE.PointLight(new THREE.Color(props.color ?? 0x00ff00), props.intensity ?? 1.0),
 
   // Custom example
   Pyramid: (props) => buildPyramidGeometry(props),
@@ -20,17 +21,9 @@ const typeMap = {
  * @param {THREE.Scene} scene - The Three.js scene to populate.
  */
 export async function loadSceneFromJSON(sceneJSON, scene) {
-  const ambientLight = new THREE.AmbientLight( 0x404040, 5 ); // soft white light
+  const ambientLight = new THREE.AmbientLight( 0x404040, 5 ); // default light (soft white ambient light)
   scene.add(ambientLight);
 
-  const pointLight = new THREE.PointLight(0xffffff, 2); // bright white light
-  pointLight.position.set(50, 50, 50);
-  pointLight.castShadow = true;
-  pointLight.shadow.mapSize.width = 4096; // high-res shadows
-  pointLight.shadow.mapSize.height = 4096;
-  scene.add(pointLight);
-
-  console.log("Added lights to scene");
   console.log(sceneJSON.objects.length, "objects in scene");
   for (const obj of sceneJSON.objects) {
     const threeObject = await buildObject(obj);
@@ -170,6 +163,7 @@ function createVolumeProxyMesh(dataTex, { width, height, depth, color }) {
 function toRadians(degrees) {
   return degrees.map(d => d * Math.PI / 180);
 }
+
 
 // --- Custom Geometry Builders ---
 function buildPyramidGeometry({ base = 1, height = 1 }) {
