@@ -8,7 +8,7 @@ const scene    = new THREE.Scene();
 const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
 camera.position.set(3,3,3);
 
-const axesHelper = new THREE.AxesHelper(3);
+const axesHelper = new THREE.AxesHelper(2);
 scene.add(axesHelper);
 
 const gridHelper = new THREE.GridHelper(10, 10);
