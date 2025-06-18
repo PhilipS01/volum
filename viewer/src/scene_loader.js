@@ -20,9 +20,19 @@ const typeMap = {
  * @param {THREE.Scene} scene - The Three.js scene to populate.
  */
 export async function loadSceneFromJSON(sceneJSON, scene) {
+  const ambientLight = new THREE.AmbientLight( 0x404040, 5 ); // soft white light
+  scene.add(ambientLight);
+
+  const directionalLight = new THREE.PointLight(0xffffff, 2); // bright white light
+  directionalLight.position.set(50, 50, 50);
+  directionalLight.castShadow = true;
+  scene.add(directionalLight);
+  console.log("Added lights to scene");
+  console.log(sceneJSON.objects.length, "objects in scene");
   for (const obj of sceneJSON.objects) {
     const threeObject = await buildObject(obj);
     if (threeObject) scene.add(threeObject);
+    console.log(`Added object: ${obj.type}`, threeObject);
   }
 }
 
@@ -67,8 +77,11 @@ async function buildObject(obj) {
     }
 
     const geometry = geometryBuilder(obj);
-    const material = new THREE.MeshStandardMaterial({ color: obj.color || 'gray' });
+    const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(obj.color ?? 0x00ff00) });
     const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+
     return mesh;
   }
 }

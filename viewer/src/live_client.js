@@ -6,22 +6,39 @@ const canvas = document.getElementById('three-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 const scene    = new THREE.Scene();
 const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
-camera.position.set(2,2,2);
+camera.position.set(3,3,3);
+
+const axesHelper = new THREE.AxesHelper(3);
+scene.add(axesHelper);
+
+const gridHelper = new THREE.GridHelper(10, 10);
+scene.add(gridHelper);
+
+
 //document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // optional: for softer shadows
 
 // Helper to remove all meshes from scene
 function clearScene() {
   scene.children.slice().forEach(c => scene.remove(c));
+  const axesHelper = new THREE.AxesHelper(3);
+    scene.add(axesHelper);
+
+    const gridHelper = new THREE.GridHelper(10, 10);
+    scene.add(gridHelper);
 }
 
 // Live-update socket
-const ws = new WebSocket(`ws://${location.host}/scene/ws`);
+const ws = new WebSocket(`ws://${location.host}/api/scene/ws`);
 ws.onmessage = async ({ data }) => {
     if (data === 'scene_updated') {
-        const json = await fetch('/api/scene').then(r => r.json());
+        console.log('Scene updated, reloading...');
+        const json = await fetch('/api/scene').then(r => r.json()); // TODO: old json when updating
         clearScene();
+        console.log('Loaded new scene JSON:', json);
         await loadSceneFromJSON(json, scene);
     }
     if (data === 'volume_updated') {

@@ -32,14 +32,15 @@ def build_object_from_dict(obj_dict: Dict[str, Any], registry: ObjectRegistry) -
 
     # Prepare constructor kwargs
     kwargs = {}
-    for key, val in obj_dict.items():
-        if key == "type":
+    for attr, val in obj_dict.items():
+        print(f"Processing attribute '{attr}' with value: {val}")
+        if attr == "type":
             continue
         # Nested object or list of nested objects
         if isinstance(val, dict) and "type" in val:
-            kwargs[key] = build_object_from_dict(val, registry)
+            kwargs[attr] = build_object_from_dict(val, registry)
         else:
-            kwargs[key] = val
+            kwargs[attr] = val
 
     # Instantiate and return
     return cls(**kwargs)

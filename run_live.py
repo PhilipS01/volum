@@ -1,4 +1,7 @@
-import argparse, os, uvicorn, webbrowser, time
+import argparse, os, uvicorn
+from pathlib import Path
+from volum.config.runtime import runtime_config
+
 
 
 def main():
@@ -7,7 +10,11 @@ def main():
     )
     parser.add_argument(
         "--scene-path", required=True,
-        help="Path to the scene JSON file to watch and serve"
+        help="Path to the scene JSON file to watch and serve, or output path of python script if python-path is provided too."
+    )
+    parser.add_argument(
+        "--python-path", required=False,
+        help="Path to the python script to watch and run (containing a scene object)"
     )
     parser.add_argument(
         "--host", default="127.0.0.1",
@@ -23,8 +30,9 @@ def main():
     )
     args = parser.parse_args()
 
-    # Export paths as environment variables for the live module to pick up
-    os.environ['SCENE_PATH'] = os.path.abspath(args.scene_path)
+    # Set up runtime configuration
+    runtime_config.scene_path = Path(args.scene_path).resolve()
+    runtime_config.python_path = Path(args.python_path).resolve() if args.python_path else None
 
     uvicorn_args = {
         "app": "volum.api:app",

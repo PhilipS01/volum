@@ -1,6 +1,6 @@
 from .registry import ObjectRegistry
-import uuid
 from typing import Dict, Any
+import uuid, os
 
 
 class Scene:
@@ -36,7 +36,7 @@ class Scene:
         """Clear all objects in the scene."""
         self.objects.clear()
 
-    def save(self, path: str):
+    def save(self, path: str=os.path.join(os.getcwd(), "scene.json")):
         """Save the current scene to a JSON file."""
         import json
         with open(path, 'w') as f:

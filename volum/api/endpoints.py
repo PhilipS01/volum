@@ -1,62 +1,34 @@
-import os
-import asyncio
+import os, asyncio, time, hashlib
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional, Union
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, FastAPI
 from fastapi.responses import FileResponse
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+from watchdog.events import FileSystemEventHandler, FileSystemEvent
 
-from ..core.scene import Scene
-from ..core.builder import build_object_from_dict
-# load your plugins
-from ..plugins.base_shapes import BaseShapesPlugin
-#from plugins.data_plots import DataPlotsPlugin
+from volum.api.schema import ScenePayload, SceneObjectPayload
+from volum.api.scene import scene, create_scene
+from volum.api.utils import get_main_event_loop
+from volum.api.utils import create_scene_from_path
+
+from volum.config.runtime import runtime_config
+
 
 router = APIRouter()
 
-# Read watched file paths from env vars (set by run_live.py)
-SCENE_PATH  = os.getenv("SCENE_PATH")
+# Paths from runtime config
+SCENE_PATH = runtime_config.scene_path
+PYTHON_PATH = runtime_config.python_path
 
-# Initialize global Scene and registry
-scene = Scene()
-scene.load_plugins([BaseShapesPlugin()])
-
-class SceneObjectPayload(BaseModel):
-    type: str = Field(..., description="Registered object type name")
-    # Optional fields for object properties
-    object: Optional[Dict[str, Any]] = None
-    position: Optional[List[float]] = None
-    rotation: Optional[List[float]] = None
-    scale: Optional[List[float]] = None
-    color: Optional[Union[List[float], str]] = None
-    width: Optional[float] = None
-    height: Optional[float] = None
-    depth: Optional[float] = None
-    radius: Optional[float] = None
-    # Capture any additional fields (that may be defined by plugins)
-    class Config:
-        extra = 'allow'
-
-class ScenePayload(BaseModel):
-    objects: List[SceneObjectPayload]
 
 @router.post("/", summary="Create or replace the entire scene")
 def create_scene(payload: ScenePayload):
-    # Clear existing
-    scene.clear()
-
-    for obj_def in payload.objects:
-        obj_dict = obj_def.model_dump(exclude_none=True)
-        # Use builder to instantiate Python object
-        obj = build_object_from_dict(obj_dict, scene.registry)
-        scene.add_object(obj)
-
-    return {"status": "ok", "object_count": len(scene.objects)}
+    return create_scene(payload)
 
 @router.get("/", summary="Get the current scene as JSON")
 def get_scene():
+    print("Getting scene with", len(scene.objects), "objects")
     serialized = []
     for obj in scene.objects.values():
         d = obj.to_dict()
@@ -105,16 +77,60 @@ class ConnectionManager:
 
 # Watchdog File Handler
 class LiveFileHandler(FileSystemEventHandler):
-    def __init__(self, path: str, event_name: str):
-        self.watch_path = os.path.abspath(path)
+    def __init__(self, scene_path: str, event_name: str, python_path: Optional[str] = None):
+        self.scene_path = os.path.abspath(scene_path)
         self.event_name = event_name
+        self.python_path = os.path.abspath(python_path) if (python_path and os.path.isfile(python_path)) else None
+        self._last_hashes = {}  # key: file path, value: hash
+        self._debounce_seconds = .5  # tune as needed
+        self._last_modified_times = {}
 
-    def on_modified(self, event):
-        if os.path.abspath(event.src_path) == self.watch_path:
-            # schedule a broadcast on the event loop
-            asyncio.get_event_loop().create_task(
-                manager.broadcast(self.event_name)
-            )
+    def _file_hash(self, path: str) -> str:
+        try:
+            with open(path, "rb") as f:
+                return hashlib.sha1(f.read()).hexdigest()
+        except FileNotFoundError:
+            return ""
+
+    def on_modified(self, event: FileSystemEvent):
+        if event.is_directory:
+            return  # Ignore directory events
+    
+        path = os.path.abspath(event.src_path)
+        now = time.time()
+
+        last_time = self._last_modified_times.get(path, 0)
+        if now - last_time < self._debounce_seconds:
+            return
+        self._last_modified_times[path] = now
+
+        current_hash = self._file_hash(str(path))
+        last_hash = self._last_hashes.get(path, "")
+        if current_hash == last_hash:
+            return  # no actual content change
+
+        self._last_hashes[path] = current_hash
+
+        loop = get_main_event_loop()
+        if not loop:
+            raise RuntimeError("Main event loop is not set.")
+        
+        if path == self.scene_path:
+            print(self.scene_path, "modified scene file, reloading ...")
+
+            create_scene_from_path(str(self.scene_path))
+            asyncio.run_coroutine_threadsafe(manager.broadcast(self.event_name), loop)
+
+        if self.python_path and path == self.python_path:
+            print(self.python_path, "modified python file, reloading ...")
+
+            async def restart_script():
+                if self.python_path:
+                    proc = await asyncio.create_subprocess_exec("python3", self.python_path)
+                    await proc.communicate()
+
+            asyncio.run_coroutine_threadsafe(restart_script(), loop)
+
 
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
@@ -126,15 +142,19 @@ async def websocket_endpoint(ws: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(ws)
 
-
-
 # Initialize the connection manager and observer
 manager = ConnectionManager()
 observer = Observer()
+
 # Start observing the scene file if provided
-if SCENE_PATH:
+if SCENE_PATH and PYTHON_PATH is None:
     observer.schedule(
-        LiveFileHandler(SCENE_PATH,  "scene_updated"),
+        LiveFileHandler(str(SCENE_PATH),  "scene_updated"),
         os.path.dirname(SCENE_PATH), recursive=False
     )
-
+    
+if SCENE_PATH and PYTHON_PATH is not None:
+    observer.schedule(
+        LiveFileHandler(str(SCENE_PATH), "scene_updated", python_path=str(PYTHON_PATH)),
+        os.path.dirname(SCENE_PATH), recursive=False
+    )
