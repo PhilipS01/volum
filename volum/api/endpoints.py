@@ -121,7 +121,7 @@ class LiveFileHandler(FileSystemEventHandler):
             create_scene_from_path(str(self.scene_path))
             asyncio.run_coroutine_threadsafe(manager.broadcast(self.event_name), loop)
 
-        if self.python_path and path == self.python_path:
+        if self.python_path and path == self.python_path: # usually happens first, this will change the file under scene_path and trigger the broadcast (see above)
             print(self.python_path, "modified python file, reloading ...")
 
             async def restart_script():
