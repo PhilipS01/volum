@@ -1,9 +1,10 @@
-from .box import Box
-from .sphere import Sphere
-from .plane import Plane
-from .transform import Transform
-from .cylinder import Cylinder
-from .line import Line
+from volum.objects.box import Box
+from volum.objects.sphere import Sphere
+from volum.objects.plane import Plane
+from volum.objects.transform import Transform
+from volum.objects.cylinder import Cylinder
+from volum.objects.line import Line
+from volum.objects.point_light import PointLight
 
 __all__ = [
     "Box",
@@ -11,5 +12,6 @@ __all__ = [
     "Plane",
     "Transform",
     "Cylinder",
-    "Line"
+    "Line",
+    "PointLight"
 ]

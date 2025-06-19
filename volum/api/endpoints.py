@@ -13,6 +13,8 @@ from volum.api.utils import get_main_event_loop
 from volum.api.utils import create_scene_from_path
 
 from volum.config.runtime import runtime_config
+from volum.plugins.base_shapes import BaseShapesPlugin
+from volum.plugins.lights import LightsPlugin
 
 
 router = APIRouter()
@@ -117,7 +119,7 @@ class LiveFileHandler(FileSystemEventHandler):
         
         if path == self.scene_path:
             print(self.scene_path, "modified scene file, reloading ...")
-
+            
             create_scene_from_path(str(self.scene_path))
             asyncio.run_coroutine_threadsafe(manager.broadcast(self.event_name), loop)
 

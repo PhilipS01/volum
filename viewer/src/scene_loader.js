@@ -6,7 +6,7 @@ const typeMap = {
   Box: (props) => new THREE.BoxGeometry(props.width, props.height, props.depth),
   Sphere: (props) => new THREE.SphereGeometry(props.radius, 32, 32),
   Plane: (props) => new THREE.PlaneGeometry(props.width, props.height),
-  PointLight: (props) => new THREE.PointLight(new THREE.Color(props.color ?? 0x00ff00), props.intensity ?? 1.0),
+  PointLight: (props) => new THREE.PointLight(new THREE.Color(props.color ?? 0xffffff), props.intensity ?? 1),
 
   // Custom example
   Pyramid: (props) => buildPyramidGeometry(props),
@@ -65,20 +65,35 @@ async function buildObject(obj) {
     });
   }
 
-  else {
-    const geometryBuilder = typeMap[obj.type];
-    if (!geometryBuilder) {
-      console.warn(`Unknown object type: ${obj.type}`);
+  else if (obj.type === 'PointLight' || obj.type === 'DirectionalLight' || obj.type === 'SpotLight') {
+    const lightBuilder = typeMap[obj.type];
+    if (!lightBuilder) {
+      console.warn(`Unknown light type: ${obj.type}`);
       return null;
     }
+    const light = lightBuilder(obj);
 
-    const geometry = geometryBuilder(obj);
-    const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(obj.color ?? 0x00ff00) });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    light.castShadow = true;
+    light.shadow.mapSize.width = 2048; // default shadow map size
+    light.shadow.mapSize.height = 2048;
 
-    return mesh;
+    return light;
+  }
+
+  else {
+      const geometryBuilder = typeMap[obj.type];
+      if (!geometryBuilder) {
+        console.warn(`Unknown object type: ${obj.type}`);
+        return null;
+      }
+
+      const geometry = geometryBuilder(obj);
+      const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(obj.color ?? 0x00ff00) });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
+      return mesh;
   }
 }
 

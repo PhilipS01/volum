@@ -24,7 +24,8 @@ def load_and_watch():
 
     # Initial load from disk
     if runtime_config.scene_path:
-        create_scene_from_path(str(runtime_config.scene_path))
+        if not runtime_config.python_path:
+            create_scene_from_path(str(runtime_config.scene_path))
     else:
         raise ValueError("SCENE_PATH environment variable is not set and no Python script provided either.")
 

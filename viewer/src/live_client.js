@@ -22,15 +22,17 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; // optional: for softer shadows
 
 // Set up event listeners for UI controls
-document.getElementById('checkbox-light').checked = true;
-document.getElementById('checkbox-light').addEventListener('change', (e) => {
+const checkboxLight = document.getElementById('checkbox-light');
+checkboxLight.checked = true;
+checkboxLight.addEventListener('change', (e) => {
     const enabled = e.target.checked;
     toggleAllLights(scene, enabled);
     console.log(`Lights ${enabled ? 'enabled' : 'disabled'}`);
 });
 
-document.getElementById('checkbox-shadows').checked = true;
-document.getElementById('checkbox-shadows').addEventListener('change', (e) => {
+const checkboxShadows =  document.getElementById('checkbox-shadows');
+checkboxShadows.checked = true;
+checkboxShadows.addEventListener('change', (e) => {
     const enabled = e.target.checked;
     toggleAllLightShadows(scene, enabled);
     console.log(`Shadows ${enabled ? 'enabled' : 'disabled'}`);
@@ -53,10 +55,13 @@ const ws = new WebSocket(`ws://${location.host}/api/scene/ws`);
 ws.onmessage = async ({ data }) => {
     if (data === 'scene_updated') {
         console.log('Scene updated, reloading...');
-        const json = await fetch('/api/scene').then(r => r.json()); // TODO: old json when updating
+        const json = await fetch('/api/scene').then(r => r.json());
         clearScene();
-        console.log('Loaded new scene JSON:', json);
         await loadSceneFromJSON(json, scene);
+
+        toggleAllLights(scene, checkboxLight.checked);
+        toggleAllLightShadows(scene, checkboxShadows.checked);
+        console.log('Scene reloaded');
     }
     if (data === 'volume_updated') {
         const tex = await loadVolumeTexture('/scene/volume', { width, height, depth });
@@ -70,6 +75,8 @@ ws.onclose = () => console.warn('Live socket closed');
 (async function init() {
     const json = await fetch('/api/scene').then(r => r.json());
     await loadSceneFromJSON(json, scene);
+
+    toggleAllLights(scene, checkboxLight.checked); // check for lights
 
     onWindowResize();
     window.addEventListener('resize', onWindowResize);
@@ -96,9 +103,10 @@ function animate() {
  */
 function toggleAllLightShadows(scene, enabled) {
   scene.traverse(obj => {
-    if (obj.isLight && 'castShadow' in obj && obj.shadow) {
-      obj.castShadow = enabled;
-      obj.shadow.mapSize.width = 2048;
+    if (obj.isLight && !(obj instanceof THREE.AmbientLight)) {
+        obj.castShadow = enabled;
+        obj.receiveShadow = enabled;
+        obj.shadow.mapSize.width = 2048;
         obj.shadow.mapSize.height = 2048;
         obj.shadow.needsUpdate = true;
     }
@@ -111,9 +119,20 @@ function toggleAllLightShadows(scene, enabled) {
  * @param {boolean} enabled 
  */
 function toggleAllLights(scene, enabled) {
-  scene.traverse(obj => {
-    if (obj.isLight) {
-      obj.visible = enabled;
+    var light_count = 0;
+    scene.traverse(obj => {
+        if (obj.isLight && !(obj instanceof THREE.AmbientLight)) {
+            obj.visible = enabled;
+            light_count++;
+        }
+    });
+    // Enable/disable checkboxes based on light count
+    if (light_count === 0) {
+        checkboxLight.disabled = true;
+        checkboxShadows.disabled = true;
     }
-  });
+    else {
+        checkboxLight.disabled = false;
+        checkboxShadows.disabled = false;
+    }
 }
