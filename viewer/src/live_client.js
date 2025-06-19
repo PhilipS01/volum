@@ -48,6 +48,7 @@ checkboxAxes.addEventListener('change', (e) => {
 });
 
 const gridSizeInput = document.getElementById('tb-grid-size');
+gridSizeInput.value = 10;
 gridSizeInput.addEventListener('change', (e) => {
     const size = parseFloat(e.target.value);
     if (isNaN(size) || size <= 0) {
