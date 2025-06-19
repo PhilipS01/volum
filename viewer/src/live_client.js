@@ -8,13 +8,6 @@ const scene    = new THREE.Scene();
 const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
 camera.position.set(3,3,3);
 
-const axesHelper = new THREE.AxesHelper(2);
-scene.add(axesHelper);
-
-const gridHelper = new THREE.GridHelper(10, 10);
-scene.add(gridHelper);
-
-
 //document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -38,16 +31,48 @@ checkboxShadows.addEventListener('change', (e) => {
     console.log(`Shadows ${enabled ? 'enabled' : 'disabled'}`);
 });
 
+const checkboxGrid =  document.getElementById('checkbox-grid');
+checkboxGrid.checked = true;
+checkboxGrid.addEventListener('change', (e) => {
+    const enabled = e.target.checked;
+    toggleGridHelper(scene, enabled);
+    console.log(`Grid ${enabled ? 'enabled' : 'disabled'}`);
+});
+
+const checkboxAxes =  document.getElementById('checkbox-axes');
+checkboxAxes.checked = false;
+checkboxAxes.addEventListener('change', (e) => {
+    const enabled = e.target.checked;
+    toggleAxesHelper(scene, enabled);
+    console.log(`Axes ${enabled ? 'enabled' : 'disabled'}`);
+});
+
+const gridSizeInput = document.getElementById('tb-grid-size');
+gridSizeInput.addEventListener('change', (e) => {
+    const size = parseFloat(e.target.value);
+    if (isNaN(size) || size <= 0) {
+        console.warn('Invalid grid size, must be a positive number');
+        return;
+    }
+    let gridHelper = scene.getObjectByName('gridHelper');
+    if (!gridHelper) {
+        gridHelper = new THREE.GridHelper(size, size);
+        gridHelper.name = 'gridHelper';
+        scene.add(gridHelper);
+    } else {
+        gridHelper.dispose(); // remove old grid helper
+        scene.remove(gridHelper);
+        gridHelper = new THREE.GridHelper(size, size);
+        gridHelper.name = 'gridHelper';
+        scene.add(gridHelper);
+    }
+    console.log(`Grid size set to ${size}`);
+});
+
 
 // Helper to remove all meshes from scene
 function clearScene() {
     scene.children.slice().forEach(c => scene.remove(c));
-    // add helpers back in
-    const axesHelper = new THREE.AxesHelper(3);
-    scene.add(axesHelper);
-
-    const gridHelper = new THREE.GridHelper(10, 10);
-    scene.add(gridHelper);
 }
 
 // Live-update socket
@@ -61,6 +86,8 @@ ws.onmessage = async ({ data }) => {
 
         toggleAllLights(scene, checkboxLight.checked);
         toggleAllLightShadows(scene, checkboxShadows.checked);
+        toggleGridHelper(scene, checkboxGrid.checked);
+        toggleAxesHelper(scene, checkboxAxes.checked);
         console.log('Scene reloaded');
     }
     if (data === 'volume_updated') {
@@ -77,6 +104,8 @@ ws.onclose = () => console.warn('Live socket closed');
     await loadSceneFromJSON(json, scene);
 
     toggleAllLights(scene, checkboxLight.checked); // check for lights
+    toggleGridHelper(scene, checkboxGrid.checked); // grid helper
+    toggleAxesHelper(scene, checkboxAxes.checked); // axes helper
 
     onWindowResize();
     window.addEventListener('resize', onWindowResize);
@@ -135,4 +164,34 @@ function toggleAllLights(scene, enabled) {
         checkboxLight.disabled = false;
         checkboxShadows.disabled = false;
     }
+}
+
+/**
+ * Toggles the visibility of the grid helper.
+ * @param {THREE.Scene} scene 
+ * @param {boolean} enabled 
+ */
+function toggleGridHelper(scene, enabled) {
+    let gridHelper = scene.getObjectByName('gridHelper');
+    if (!gridHelper) {
+        gridHelper = new THREE.GridHelper(gridSizeInput.value, gridSizeInput.value);
+        gridHelper.name = 'gridHelper';
+        scene.add(gridHelper);
+    }
+    gridHelper.visible = enabled;
+}
+
+/**
+ * Toggles the visibility of the axes helper.
+ * @param {THREE.Scene} scene 
+ * @param {boolean} enabled 
+ */
+function toggleAxesHelper(scene, enabled) {
+    let axesHelper = scene.getObjectByName('axesHelper');
+    if (!axesHelper) {
+        axesHelper = new THREE.AxesHelper(2);
+        axesHelper.name = 'axesHelper';
+        scene.add(axesHelper);
+    }
+    axesHelper.visible = enabled;
 }
