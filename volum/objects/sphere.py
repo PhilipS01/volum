@@ -1,4 +1,4 @@
-from ..core.scene import SceneObject
+from volum.core.scene import SceneObject
 
 
 class Sphere(SceneObject):

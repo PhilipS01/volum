@@ -1,5 +1,5 @@
-from core.plugin import ScenePlugin
-from objects.volume import Volume
+from volum.core.plugin import ScenePlugin
+from volum.objects.volume import Volume
 
 class VolumesPlugin(ScenePlugin):
     """A plugin for adding volume objects to the scene."""

@@ -1,4 +1,4 @@
-from ..core.scene import SceneObject
+from volum.core.scene import SceneObject
 
 class Transform(SceneObject):
     """Represents a transformation applied to a SceneObject, including position, rotation, and scale."""

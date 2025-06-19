@@ -1,4 +1,4 @@
-from ..core.interfaces import Scriptable
+from volum.core.interfaces import Scriptable
 
 class ScriptRunner:
     """A class that runs scripts on scriptable objects."""
