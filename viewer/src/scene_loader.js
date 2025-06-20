@@ -7,6 +7,11 @@ const typeMap = {
   Sphere: (props) => new THREE.SphereGeometry(props.radius, 32, 32),
   Plane: (props) => new THREE.PlaneGeometry(props.width, props.height),
   PointLight: (props) => new THREE.PointLight(new THREE.Color(props.color ?? 0xffffff), props.intensity ?? 1),
+  Cylinder: (props) => new THREE.CylinderGeometry(props.radius_top, props.radius_bottom, props.height, props.radial_segments),
+  Line: (props) => {
+    const points = props.points.map(p => new THREE.Vector3(...p));
+    return new THREE.BufferGeometry().setFromPoints(points);
+  },
 
   // Custom example
   Pyramid: (props) => buildPyramidGeometry(props),
@@ -78,6 +83,23 @@ async function buildObject(obj) {
     light.shadow.mapSize.height = 2048;
 
     return light;
+  }
+
+  else if (obj.type === 'Line') {
+    const geometryBuilder = typeMap[obj.type];
+    if (!geometryBuilder) {
+      console.warn(`Unknown line type: ${obj.type}`);
+      return null;
+    }
+
+    const geometry = geometryBuilder(obj);
+    const material = new THREE.LineBasicMaterial({ color: new THREE.Color(obj.color ?? 0x0000ff), 
+                                                  linewidth: obj.width });
+    const line = new THREE.Line(geometry, material);
+    line.castShadow = true;
+    line.receiveShadow = true;
+
+    return line;
   }
 
   else {
