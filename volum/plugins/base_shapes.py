@@ -10,10 +10,8 @@ from volum.objects.line import Line
 
 class BaseShapesPlugin(ScenePlugin):
     """A plugin for adding basic geometric shapes to the scene."""
-    def __init__(self):
-        super().__init__()
-        self.name = "BaseShapesPlugin"
-        self.description = "A plugin for adding basic geometric shapes to the scene."
+    name = "BaseShapesPlugin"
+    description = "A plugin for adding basic geometric shapes to the scene."
         
     def register(self, registry):
         registry.register_type("Box", Box)

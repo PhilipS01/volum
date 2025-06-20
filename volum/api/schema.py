@@ -17,4 +17,5 @@ class SceneObjectPayload(BaseModel):
         extra = 'allow'
 
 class ScenePayload(BaseModel):
+    plugins: List[str] = Field(default_factory=list, description="List of plugin names to load")
     objects: List[SceneObjectPayload]

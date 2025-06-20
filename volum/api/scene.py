@@ -1,17 +1,11 @@
 from volum.core.scene import Scene
-from volum.api.schema import ScenePayload, SceneObjectPayload
+from volum.api.schema import ScenePayload
 from volum.core.builder import build_object_from_dict
-from volum.plugins.base_shapes import BaseShapesPlugin
-
 # load your plugins
-from volum.plugins.base_shapes import BaseShapesPlugin
-from volum.plugins.lights import LightsPlugin
-#from plugins.data_plots import DataPlotsPlugin
+from volum.plugins import PLUGIN_MAP
 
 
-# Initialize global Scene and registry
-scene = Scene()
-scene.load_plugins([BaseShapesPlugin(), LightsPlugin()]) # need to load plugins for the API scene object as well (loading them from the user's script is not enough)
+scene = Scene() # initialize global Scene and registry
 
 def create_scene(payload: ScenePayload):
     """Create a new scene from the provided payload.
@@ -23,6 +17,14 @@ def create_scene(payload: ScenePayload):
         dict: A dictionary containing the status and object count.
     """
 
+    plugins = []
+    for plugin_name in payload.plugins:
+        plugin_cls = PLUGIN_MAP.get(plugin_name, None)
+        if plugin_cls is not None:
+            plugins.append(plugin_cls())
+    
+    scene.load_plugins(plugins)
+
     scene.clear()
     for obj_def in payload.objects:
         obj_dict = obj_def.model_dump(exclude_none=True)
@@ -30,4 +32,4 @@ def create_scene(payload: ScenePayload):
         obj = build_object_from_dict(obj_dict, scene.registry)
         scene.add_object(obj)
 
-    return {"status": "ok", "object_count": len(scene.objects)}
+    return {"status": "ok", "object_count": len(scene.objects), "plugins": plugins}

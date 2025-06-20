@@ -13,8 +13,6 @@ from volum.api.utils import get_main_event_loop
 from volum.api.utils import create_scene_from_path
 
 from volum.config.runtime import runtime_config
-from volum.plugins.base_shapes import BaseShapesPlugin
-from volum.plugins.lights import LightsPlugin
 
 
 router = APIRouter()

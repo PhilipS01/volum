@@ -33,7 +33,7 @@ def build_object_from_dict(obj_dict: Dict[str, Any], registry: ObjectRegistry) -
     # Prepare constructor kwargs
     kwargs = {}
     for attr, val in obj_dict.items():
-        print(f"Processing attribute '{attr}' with value: {val}")
+        #print(f"Processing attribute '{attr}' with value: {val}")
         if attr == "type":
             continue
         # Nested object or list of nested objects

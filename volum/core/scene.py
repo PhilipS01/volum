@@ -1,16 +1,23 @@
-from .registry import ObjectRegistry
-from typing import Dict, Any
+from volum.core.registry import ObjectRegistry
+from volum.core.plugin import ScenePlugin
+from typing import List, Dict, Any, Type
 import uuid, os
 
 
 class Scene:
     def __init__(self):
         self.registry = ObjectRegistry()
+        self.plugins: List[ScenePlugin] = []
         self.objects: Dict[str, Any] = {}
 
-    def load_plugins(self, plugins):
+    def load_plugins(self, plugins: List[ScenePlugin]):
+        """Load plugins into the scene's registry."""
         for plugin in plugins:
-            plugin.register(self.registry)
+            if not isinstance(plugin, ScenePlugin):
+                raise TypeError(f"Expected ScenePlugin, got {type(plugin)}")
+            if plugin not in self.plugins:
+                plugin.register(self.registry)
+                self.plugins.append(plugin)
 
     def add_object(self, obj_or_type, **kwargs):
         if isinstance(obj_or_type, str):
@@ -30,8 +37,11 @@ class Scene:
         self.objects[obj_id] = obj
 
     def serialize(self):
-        return [obj.to_dict() for obj in self.objects.values()]
-    
+        return {
+            "plugins": [plugin.name for plugin in self.plugins],
+            "objects": [obj.to_dict() for obj in self.objects.values()]
+        }
+
     def clear(self):
         """Clear all objects in the scene."""
         self.objects.clear()

@@ -7,3 +7,9 @@ __all__ = [
     "LightsPlugin",
     "VolumesPlugin"
 ]
+
+PLUGIN_MAP = {
+    "BaseShapesPlugin": BaseShapesPlugin,
+    "LightsPlugin": LightsPlugin,
+    "VolumesPlugin": VolumesPlugin,
+}
