@@ -24,7 +24,7 @@ checkboxLight.addEventListener('change', (e) => {
 });
 
 const checkboxShadows =  document.getElementById('checkbox-shadows');
-checkboxShadows.checked = true;
+checkboxShadows.checked = false;
 checkboxShadows.addEventListener('change', (e) => {
     const enabled = e.target.checked;
     toggleAllLightShadows(scene, enabled);
@@ -105,6 +105,7 @@ ws.onclose = () => console.warn('Live socket closed');
     await loadSceneFromJSON(json, scene);
 
     toggleAllLights(scene, checkboxLight.checked); // check for lights
+    toggleAllLightShadows(scene, checkboxShadows.checked); // shadows
     toggleGridHelper(scene, checkboxGrid.checked); // grid helper
     toggleAxesHelper(scene, checkboxAxes.checked); // axes helper
 
