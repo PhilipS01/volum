@@ -1,10 +1,10 @@
-from numpy import ndarray
+import numpy as np
 from typing import Union, List
 from volum.core.scene import SceneObject
 
 class Line(SceneObject):
     """Represents a polyline in space."""
-    def __init__(self, points: Union[List, ndarray], color: str = "red"):
+    def __init__(self, points: Union[List, np.ndarray], color: str = "red"):
         super().__init__()
         if len(points) < 2:
             raise ValueError("A line must have at least two points.")
@@ -13,7 +13,7 @@ class Line(SceneObject):
         if isinstance(points, list):
             if not all(isinstance(p, list) for p in points):
                 raise ValueError("Points must be a 2D list (list of lists).")
-        elif isinstance(points, ndarray):
+        elif isinstance(points, np.ndarray):
             if points.ndim != 2:
                 raise ValueError("Points must be a 2D numpy.ndarray.")
             points = points.tolist()
@@ -40,6 +40,33 @@ class Line(SceneObject):
     def to_dict(self):
         return {
             "type": "Line",
-            "points": self.points.tolist() if isinstance(self.points, ndarray) else self.points,
+            "points": self.points.tolist() if isinstance(self.points, np.ndarray) else self.points,
             "color": self.color
         }
+    
+    def distance_to(self, point):
+        point = np.array(point)
+        min_distance = float('inf')
+
+        for i in range(len(self.points) - 1):
+            A = np.array(self.points[i])
+            B = np.array(self.points[i + 1])
+            AB = B - A
+            AP = point - A
+
+            ab_len_squared = np.dot(AB, AB)
+            if ab_len_squared == 0:
+                # A and B are the same point
+                dist = np.linalg.norm(AP)
+            else:
+                t = np.dot(AP, AB) / ab_len_squared
+                t = np.clip(t, 0, 1)
+                closest_point = A + t * AB
+                dist = np.linalg.norm(point - closest_point)
+
+            min_distance = min(min_distance, dist)
+
+        return min_distance
+
+    def __repr__(self):
+        return f"Line(points={self.points}, color={self.color})"

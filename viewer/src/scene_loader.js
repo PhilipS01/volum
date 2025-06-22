@@ -12,7 +12,6 @@ const typeMap = {
     const points = props.points.map(p => new THREE.Vector3(...p));
     return new THREE.BufferGeometry().setFromPoints(points);
   },
-  Plane: (props) => new THREE.PlaneGeometry(props.width, props.height),
 
   // Custom example
   Pyramid: (props) => buildPyramidGeometry(props),
@@ -95,12 +94,28 @@ async function buildObject(obj) {
 
     const geometry = geometryBuilder(obj);
     const material = new THREE.LineBasicMaterial({ color: new THREE.Color(obj.color ?? 0x0000ff), 
-                                                  linewidth: obj.width });
+                                                  linewidth: 1 });
     const line = new THREE.Line(geometry, material);
     line.castShadow = true;
     line.receiveShadow = true;
 
     return line;
+  }
+
+  else if (obj.type === 'Plane') {
+    const geometryBuilder = typeMap[obj.type];
+    if (!geometryBuilder) {
+      console.warn(`Unknown plane type: ${obj.type}`);
+      return null;
+    }
+
+    const geometry = geometryBuilder(obj);
+    const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(obj.color ?? 0x00ff00), side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(geometry, material);
+    //mesh.castShadow = true;
+    mesh.receiveShadow = true;
+
+    return mesh;
   }
 
   else {

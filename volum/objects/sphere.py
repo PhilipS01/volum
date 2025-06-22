@@ -1,3 +1,4 @@
+import numpy as np
 from volum.core.scene import SceneObject
 
 
@@ -21,3 +22,6 @@ class Sphere(SceneObject):
             "color": self.color
         }
     
+    def distance_to(self, point):
+        radius = self.radius
+        return max(0, np.linalg.norm(point) - radius)

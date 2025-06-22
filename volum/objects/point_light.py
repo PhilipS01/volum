@@ -1,3 +1,4 @@
+from numpy import linalg
 from volum.core.scene import SceneObject
 
 class PointLight(SceneObject):
@@ -14,3 +15,5 @@ class PointLight(SceneObject):
             "intensity": self.intensity
         }
     
+    def distance_to(self, point):
+        return linalg.norm(point)

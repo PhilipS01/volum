@@ -1,3 +1,4 @@
+import numpy as np
 from volum.core.scene import SceneObject
 
 class Cylinder(SceneObject):
@@ -27,6 +28,23 @@ class Cylinder(SceneObject):
             "color": self.color,
             "radial_segments": self.radial_segments
         }
+    
+    def distance_to(self, point):
+        y = point[1]
+        xz_dist = np.linalg.norm(np.array(point)[[0, 2]])
+
+        # Clamp Y to the height range
+        y_clamped = np.clip(y, -self.height / 2, self.height / 2)
+
+        # Interpolate radius at this Y height
+        t = (y_clamped + self.height / 2) / self.height
+        r_at_y = self.radius_bottom + (self.radius_top - self.radius_bottom) * t
+
+        # Compute radial and vertical distances
+        radial_dist = max(0, xz_dist - r_at_y)
+        y_dist = max(0, abs(y) - self.height / 2)
+
+        return np.linalg.norm([radial_dist, y_dist])
 
     def __repr__(self):
         return f"Cylinder(radius_top={self.radius_top}, radius_bottom={self.radius_bottom}, height={self.height}, color={self.color}, radial_segments={self.radial_segments})"

@@ -7,6 +7,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 const scene    = new THREE.Scene();
 const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 200);
 camera.position.set(0,10,10);
+camera.lookAt(0, 0, 0);
 
 //document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);

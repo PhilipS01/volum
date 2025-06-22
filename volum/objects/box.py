@@ -1,3 +1,4 @@
+import numpy as np
 from volum.core.scene import SceneObject
 
 class Box(SceneObject):
@@ -18,3 +19,10 @@ class Box(SceneObject):
             "color": self.color
         }
     
+    def distance_to(self, point):
+        half_extents = np.array([self.width, self.height, self.depth]) * 0.5
+        clamped = np.maximum(np.abs(point) - half_extents, 0)
+        return np.linalg.norm(clamped)
+    
+    def __repr__(self):
+        return f"Box(width={self.width}, height={self.height}, depth={self.depth}, color={self.color})"

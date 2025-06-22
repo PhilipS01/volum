@@ -1,13 +1,12 @@
-from .scene import Scene
-from .registry import ObjectRegistry
-from .plugin import ScenePlugin
-from .interfaces import Serializable, Transformable, Scriptable
+from volum.core.scene import Scene
+from volum.core.registry import ObjectRegistry
+from volum.core.plugin import ScenePlugin
+from volum.core.interfaces import Serializable, Scriptable
 
 __all__ = [
     "Scene",
     "ObjectRegistry",
     "ScenePlugin",
     "Serializable",
-    "Transformable",
     "Scriptable"
 ]
