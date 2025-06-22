@@ -12,6 +12,7 @@ const typeMap = {
     const points = props.points.map(p => new THREE.Vector3(...p));
     return new THREE.BufferGeometry().setFromPoints(points);
   },
+  Plane: (props) => new THREE.PlaneGeometry(props.width, props.height),
 
   // Custom example
   Pyramid: (props) => buildPyramidGeometry(props),
