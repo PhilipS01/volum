@@ -3,11 +3,10 @@ from volum.core.scene import SceneObject
 class Transform(SceneObject):
     """Represents a transformation applied to a SceneObject, including position, rotation, and scale."""
     def __init__(self, object: SceneObject, position=None, rotation=None, scale=None):
-        
         if not isinstance(object, SceneObject):
             raise TypeError(f"{object} is not a SceneObject.")
         
-        super().__init__()
+        super().__init__(material=object.material)
         self.object = object
         self.position = position or [0, 0, 0]
         self.rotation = rotation or [0, 0, 0]
