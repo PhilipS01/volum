@@ -13,6 +13,7 @@ from volum.api.utils import get_main_event_loop
 from volum.api.utils import create_scene_from_path
 
 from volum.config.runtime import runtime_config
+from volum.config.constants import TerminalColors
 
 
 router = APIRouter()
@@ -28,7 +29,6 @@ def create_scene(payload: ScenePayload):
 
 @router.get("/", summary="Get the current scene as JSON")
 def get_scene():
-    print("Getting scene with", len(scene.objects), "objects")
     serialized = []
     for obj in scene.objects.values():
         d = obj.to_dict()
@@ -116,13 +116,15 @@ class LiveFileHandler(FileSystemEventHandler):
             raise RuntimeError("Main event loop is not set.")
         
         if path == self.scene_path:
-            print(self.scene_path, "modified scene file, reloading ...")
+            if runtime_config.debug:
+                print(f"{TerminalColors.INFO}{self.scene_path.split()[-1]}, modified scene file, reloading ...{TerminalColors.RESET}")
             
             create_scene_from_path(str(self.scene_path))
             asyncio.run_coroutine_threadsafe(manager.broadcast(self.event_name), loop)
 
         if self.python_path and path == self.python_path: # usually happens first, this will change the file under scene_path and trigger the broadcast (see above)
-            print(self.python_path, "modified python file, reloading ...")
+            if runtime_config.debug:
+                print(f"{TerminalColors.INFO}{self.python_path.split()[-1]}, modified python file, reloading ...{TerminalColors.RESET}")
 
             async def restart_script():
                 if self.python_path:

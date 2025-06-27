@@ -57,6 +57,10 @@ def main():
         "--port", type=int, default=8000,
         help="Port number for the server"
     )
+    parser.add_argument(
+        "--debug", action="store_true",
+        help="Enable debug mode for more verbose output"
+    )
     args = parser.parse_args()
 
     # Validate that at least one input path is provided
@@ -75,11 +79,12 @@ def main():
     # Set up runtime configuration
     runtime_config.scene_path = scene_path
     runtime_config.python_path = Path(args.python_path).resolve() if args.python_path else None
+    runtime_config.debug = args.debug
 
     uvicorn_args = {
         "app": "volum.api:app",
         "host": args.host,
-        "port": args.port,
+        "port": args.port
     }
 
     uvicorn.run(**uvicorn_args)
