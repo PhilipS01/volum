@@ -1,14 +1,21 @@
 import numpy as np
+from typing import Optional
 from volum.core.scene import SceneObject
+from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Box(SceneObject):
     """Represents a box in 3D space."""
-    def __init__(self, width: float, height: float, depth: float, color: str = "gray"):
-        super().__init__()
+    def __init__(self, width: float, height: float, depth: float, material: Optional[MeshMaterial]=None):
+        if material is None:
+            material = StandardMaterial()
+            
+        if not isinstance(material, MeshMaterial):
+            raise TypeError(f"Box expects MeshMaterial, got {type(material)}")
+
+        super().__init__(material)
         self.width = width
         self.height = height
         self.depth = depth
-        self.color = color
 
     def to_dict(self):
         return {
@@ -16,7 +23,7 @@ class Box(SceneObject):
             "width": self.width,
             "height": self.height,
             "depth": self.depth,
-            "color": self.color
+            "material": self.material.to_dict()
         }
     
     def distance_to(self, point):
@@ -25,4 +32,4 @@ class Box(SceneObject):
         return np.linalg.norm(clamped)
     
     def __repr__(self):
-        return f"Box(width={self.width}, height={self.height}, depth={self.depth}, color={self.color})"
+        return f"Box(width={self.width}, height={self.height}, depth={self.depth}"

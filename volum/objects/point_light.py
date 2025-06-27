@@ -4,7 +4,7 @@ from volum.core.scene import SceneObject
 class PointLight(SceneObject):
     """Represents a point light in 3D space."""
     def __init__(self, intensity: float, color: str = "white"):
-        super().__init__()
+        super().__init__(material=None)  # PointLight does not have a material
         self.color = color
         self.intensity = intensity
 

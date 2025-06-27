@@ -1,14 +1,17 @@
 import numpy as np
 from volum.core.scene import SceneObject
+from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Cylinder(SceneObject):
     """Represents a cylinder object in the scene."""
-    def __init__(self, radius_top: float, radius_bottom: float, height: float, color: str = "gray", radial_segments: int = 64):
-        super().__init__()
+    def __init__(self, radius_top: float, radius_bottom: float, height: float, radial_segments: int = 64, material=StandardMaterial()):
+        if not isinstance(material, MeshMaterial):
+            raise TypeError(f"Cylinder expects MeshMaterial, got {type(material)}")
+
+        super().__init__(material)
         self.radius_top = radius_top
         self.radius_bottom = radius_bottom
         self.height = height
-        self.color = color
         self.radial_segments = radial_segments
 
     def volume(self):
@@ -25,8 +28,8 @@ class Cylinder(SceneObject):
             "radius_top": self.radius_top,
             "radius_bottom": self.radius_bottom,
             "height": self.height,
-            "color": self.color,
-            "radial_segments": self.radial_segments
+            "radial_segments": self.radial_segments,
+            "material": self.material.to_dict()
         }
     
     def distance_to(self, point):
@@ -47,4 +50,4 @@ class Cylinder(SceneObject):
         return np.linalg.norm([radial_dist, y_dist])
 
     def __repr__(self):
-        return f"Cylinder(radius_top={self.radius_top}, radius_bottom={self.radius_bottom}, height={self.height}, color={self.color}, radial_segments={self.radial_segments})"
+        return f"Cylinder(radius_top={self.radius_top}, radius_bottom={self.radius_bottom}, height={self.height}, radial_segments={self.radial_segments}, material={self.material})"

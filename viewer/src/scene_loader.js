@@ -9,7 +9,7 @@ const typeMap = {
   PointLight: (props) => new THREE.PointLight(new THREE.Color(props.color ?? 0xffffff), props.intensity ?? 1),
   Cylinder: (props) => new THREE.CylinderGeometry(props.radius_top, props.radius_bottom, props.height, props.radial_segments),
   Line: (props) => {
-    const points = props.points.map(p => new THREE.Vector3(...p));
+    const points = props.args[0].map(p => new THREE.Vector3(...p));
     return new THREE.BufferGeometry().setFromPoints(points);
   },
 
@@ -18,6 +18,50 @@ const typeMap = {
 
   // Data plot example (using canvas texture or mesh)
   Plot2D: (props) => buildPlot2DMesh(props)
+};
+
+const materialMap = {
+  BasicMaterial: (props) => new THREE.MeshBasicMaterial({ 
+    color: new THREE.Color(props.color ?? 0xffffff),
+    opacity: props.opacity ?? 1,
+    transparent: props.opacity < 1,
+    wireframe: props.wireframe ?? false,
+    side: THREE.DoubleSide
+  }),
+
+  StandardMaterial: (props) => new THREE.MeshStandardMaterial({ 
+    color: new THREE.Color(props.color ?? 0xffffff),
+    roughness: props.roughness ?? 0.5,
+    metalness: props.metalness ?? 0.5,
+    opacity: props.opacity ?? 1,
+    transparent: props.opacity < 1,
+    wireframe: props.wireframe ?? false,
+    side: THREE.DoubleSide
+  }),
+
+  PhongMaterial: (props) => new THREE.MeshPhongMaterial({
+    color: new THREE.Color(props.color ?? 0xffffff),
+    shininess: props.shininess ?? 30,
+    specular: new THREE.Color(props.specular_color ?? 0x111111),
+    opacity: props.opacity ?? 1,
+    transparent: props.opacity < 1,
+    wireframe: props.wireframe ?? false,
+    side: THREE.DoubleSide
+  }),
+
+  LineBasicMaterial: (props) => new THREE.LineBasicMaterial({
+    color: new THREE.Color(props.color ?? 0xffffff),
+    opacity: props.opacity ?? 1,
+    transparent: props.opacity < 1,
+    linewidth: 1 // linewidth will be 1 on most platforms anyway (opengl limitations)
+  }),
+
+  LineDashedMaterial: (props) => new THREE.LineDashedMaterial({
+    color: new THREE.Color(props.color ?? 0xffffff),
+    opacity: props.opacity ?? 1,
+    transparent: props.opacity < 1,
+    linewidth: 1 // linewidth will be 1 on most platforms anyway (opengl limitations)
+  })
 };
 
 /**
@@ -79,8 +123,12 @@ async function buildObject(obj) {
     const light = lightBuilder(obj);
 
     light.castShadow = true;
-    light.shadow.mapSize.width = 2048; // default shadow map size
+    // high res shadows
+    light.shadow.mapSize.width = 2048;
     light.shadow.mapSize.height = 2048;
+    // reduce shadow acne
+    light.shadow.bias = -0.0001;
+    light.shadow.normalBias = 0.02;
 
     return light;
   }
@@ -92,9 +140,14 @@ async function buildObject(obj) {
       return null;
     }
 
+    const materialBuilder = materialMap[obj.material.type];
+      if (!materialBuilder) {
+        console.warn(`Unknown material type: ${obj.material.type}`);
+        return null;
+      }
+
     const geometry = geometryBuilder(obj);
-    const material = new THREE.LineBasicMaterial({ color: new THREE.Color(obj.color ?? 0x0000ff), 
-                                                  linewidth: 1 });
+    const material = materialBuilder(obj.material);
     const line = new THREE.Line(geometry, material);
     line.castShadow = true;
     line.receiveShadow = true;
@@ -109,8 +162,14 @@ async function buildObject(obj) {
       return null;
     }
 
+    const materialBuilder = materialMap[obj.material.type];
+      if (!materialBuilder) {
+        console.warn(`Unknown material type: ${obj.material.type}`);
+        return null;
+      }
+
     const geometry = geometryBuilder(obj);
-    const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(obj.color ?? 0x00ff00), side: THREE.DoubleSide });
+    const material = materialBuilder(obj.material);
     const mesh = new THREE.Mesh(geometry, material);
     //mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -125,8 +184,14 @@ async function buildObject(obj) {
         return null;
       }
 
+      const materialBuilder = materialMap[obj.material.type];
+      if (!materialBuilder) {
+        console.warn(`Unknown material type: ${obj.material.type}`);
+        return null;
+      }
+
       const geometry = geometryBuilder(obj);
-      const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(obj.color ?? 0x00ff00) });
+      const material = materialBuilder(obj.material);
       const mesh = new THREE.Mesh(geometry, material);
       mesh.castShadow = true;
       mesh.receiveShadow = true;

@@ -1,21 +1,28 @@
 import numpy as np
+from typing import Optional
 from volum.core.scene import SceneObject
+from volum.core.materials import StandardMaterial, MeshMaterial
 
 
 class Plane(SceneObject):
     """Represents a plane in 3D space defined by a point and a normal vector."""
-    def __init__(self, width:float , height: float, color: str = 'gray'):
-        super().__init__()
+    def __init__(self, width:float , height: float, material: Optional[MeshMaterial]=None):
+        if material is None:
+            material = StandardMaterial()
+            
+        if not isinstance(material, MeshMaterial):
+            raise TypeError(f"Plane expects MeshMaterial, got {type(material)}")
+
+        super().__init__(material)
         self.width = width
         self.height = height
-        self.color = color
 
     def to_dict(self):
         return {
             "type": "Plane",
             "width": self.width,
             "height": self.height,
-            "color": self.color
+            "material": self.material.to_dict()
         }
     
     def distance_to(self, point):
@@ -32,4 +39,4 @@ class Plane(SceneObject):
         return np.linalg.norm(dist_vector)
     
     def __repr__(self):
-        return f"Plane(width={self.width}, height={self.height}, color={self.color})"
+        return f"Plane(width={self.width}, height={self.height}, material={self.material})"

@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Union
 import uuid, os, numpy as np
 
 from volum.core.interfaces import Serializable
+from volum.core.materials import Material
 
 
 class Scene:
@@ -57,8 +58,12 @@ class Scene:
 
 
 class SceneObject(Serializable):
-    def __init__(self, id=None):
+    material: Material
+
+    def __init__(self, material, id=None):
         self.id = id
+        self.material = material
     
     def distance_to(self, point: Union[List[float], np.ndarray, tuple]):
         raise NotImplementedError("SceneObject subclasses must implement a distance() method")
+    
