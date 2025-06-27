@@ -1,5 +1,5 @@
 class ScenePlugin:
-    """Basic plugin for adding objects to the scene."""
+    """Basic plugin to allow scene manipulation."""
     name="ScenePlugin"
         
     def register(self, registry):
