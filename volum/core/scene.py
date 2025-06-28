@@ -58,12 +58,37 @@ class Scene:
 
 
 class SceneObject(Serializable):
-    material: Material
+    _material: Material
 
     def __init__(self, material, id=None):
         self.id = id
-        self.material = material
+        self._material = material
+
+    @property
+    def material(self) -> Material:
+        """Get the material of the object."""
+        return self._material
     
+    @material.setter
+    def material(self, value: Material):
+        """Set the material of the object."""
+        if not isinstance(value, Material):
+            raise TypeError(f"Expected Material, got {type(value)}")
+        self._material = value
+
+    @property
+    def color(self) -> Union[str, None]:
+        """Get the color of the object's material."""
+        return self._material.color if self._material else None
+    
+    @color.setter
+    def color(self, value: str):
+        """Set the color of the object's material."""
+        if self._material:
+            self._material.color = value
+        else:
+            raise ValueError("Cannot set color on an object without a material")
+
     def distance_to(self, point: Union[List[float], np.ndarray, tuple]):
         raise NotImplementedError("SceneObject subclasses must implement a distance() method")
     
