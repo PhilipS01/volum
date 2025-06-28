@@ -1,6 +1,7 @@
 import * as THREE               from '/static/three-proxy.js';
 import { OrbitControls }        from '/static/three-proxy.js';
 import { loadSceneFromJSON }    from '/static/scene_loader.js';
+import { RoomEnvironment } from '/static/three-proxy.js';
 
 const canvas = document.getElementById('three-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -8,6 +9,15 @@ const scene    = new THREE.Scene();
 const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 200);
 camera.position.set(0,10,10);
 camera.lookAt(0, 0, 0);
+
+// Lighting
+//renderer.physicallyCorrectLights = true;
+//renderer.toneMapping = THREE.ACESFilmicToneMapping;
+//renderer.toneMappingExposure = 1.0;
+
+//const pmrem = new THREE.PMREMGenerator(renderer);
+//const envMap = pmrem.fromScene(new RoomEnvironment()).texture;
+//scene.environment = envMap;
 
 //document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -48,6 +58,8 @@ checkboxAxes.addEventListener('change', (e) => {
     console.log(`Axes ${enabled ? 'enabled' : 'disabled'}`);
 });
 
+scene.background = new THREE.Color(0x444444); // Default gray background
+
 const gridSizeInput = document.getElementById('tb-grid-size');
 gridSizeInput.value = 10;
 gridSizeInput.addEventListener('change', (e) => {
@@ -57,18 +69,28 @@ gridSizeInput.addEventListener('change', (e) => {
         return;
     }
     let gridHelper = scene.getObjectByName('gridHelper');
-    if (!gridHelper) {
-        gridHelper = new THREE.GridHelper(size, size);
-        gridHelper.name = 'gridHelper';
-        scene.add(gridHelper);
-    } else {
+    if (gridHelper) {
         gridHelper.dispose(); // remove old grid helper
         scene.remove(gridHelper);
-        gridHelper = new THREE.GridHelper(size, size);
-        gridHelper.name = 'gridHelper';
-        scene.add(gridHelper);
     }
+    
+    if (scene.background && scene.background.getHex() === 0x444444) {
+        gridHelper = new THREE.GridHelper(gridSizeInput.value, gridSizeInput.value, 0xbcbcbc);
+    } else {
+        gridHelper = new THREE.GridHelper(gridSizeInput.value, gridSizeInput.value, 0x444444); // Default size
+    }
+    gridHelper.name = 'gridHelper';
+    scene.add(gridHelper);
+    
     console.log(`Grid size set to ${size}`);
+});
+
+const bgColorInput = document.getElementById('select-color');
+bgColorInput.value = '0x444444'; // Default gray color
+bgColorInput.addEventListener('change', (e) => {
+    const color = parseInt(e.target.value, 16); // Convert hex string to number
+    scene.background = new THREE.Color(color);
+    console.log(`Background color set to ${e.target.value}`);
 });
 
 
@@ -177,7 +199,11 @@ function toggleAllLights(scene, enabled) {
 function toggleGridHelper(scene, enabled) {
     let gridHelper = scene.getObjectByName('gridHelper');
     if (!gridHelper) {
-        gridHelper = new THREE.GridHelper(gridSizeInput.value, gridSizeInput.value);
+        if (scene.background && scene.background.getHex() === 0x444444) {
+            gridHelper = new THREE.GridHelper(gridSizeInput.value, gridSizeInput.value, 0xbcbcbc);
+        } else {
+            gridHelper = new THREE.GridHelper(gridSizeInput.value, gridSizeInput.value, 0x444444); // Default size
+        }
         gridHelper.name = 'gridHelper';
         scene.add(gridHelper);
     }

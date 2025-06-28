@@ -69,7 +69,7 @@
 
     .settings-row .settings-textbox {
       grid-column: 3; /* Textbox in the third column */
-      width: 40px;
+      width: 60px;
       border: 1px solid #ccc;
       border-radius: 4px;
       font-family: "Ubuntu", sans-serif;
@@ -80,6 +80,19 @@
       text-align: right;
       display: none;
     }
+
+    .settings-row .settings-dropdown {
+      grid-column: 3; /* Dropdown in the third column */
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: "Ubuntu", sans-serif;
+      font-size: 0.86em;
+      background: rgba(255, 255, 255, 0.8);
+      color: #333;
+      transition: background 0.2s ease-in-out;
+      text-align: center;
+    }
+
   
     .settings-row input[type="checkbox"]:checked + label + input.settings-textbox {
       display: inline-block; /* Show the textbox when the checkbox is checked */
@@ -140,21 +153,30 @@
     <span class="bold heading" style="font-size: 1.2em;">Volum Viewer</span>
     <span class="light-italic subheading">Environment</span>
     <div class="settings-row light-italic">
-      <input type="checkbox" id="checkbox-light">
+      <input type="checkbox" id="checkbox-light" name="checkbox-light">
       <label for="checkbox-light" data-tooltip="Toggle visibility of all scene lights">Lights</label>
     </div>
     <div class="settings-row light-italic">
-      <input type="checkbox" id="checkbox-shadows">
+      <input type="checkbox" id="checkbox-shadows" name="checkbox-shadows">
       <label for="checkbox-shadows" data-tooltip="Toggle shadow casting for all scene lights">Shadows</label>
+    </div>
+    <div class="settings-row light-italic">
+      <input type="checkbox" id="checkbox-color" name="checkbox-color" checked disabled>
+      <label for="select-color" data-tooltip="Set background color of the scene (doesn't affect lighting)">Color</label>
+      <select id="select-color" class="settings-dropdown">
+        <option value="0x444444">Gray</option>
+        <option value="0xffffff">White</option>
+        <option value="0x000000">Black</option>
+      </select>
     </div>
 
     <span class="light-italic subheading">Helpers</span>
     <div class="settings-row light-italic">
-      <input type="checkbox" id="checkbox-axes">
+      <input type="checkbox" id="checkbox-axes" name="checkbox-axes">
       <label for="checkbox-axes" data-tooltip="Toggle visibility of the axes helper">Axes</label>
     </div>
     <div class="settings-row light-italic">
-      <input type="checkbox" id="checkbox-grid">
+      <input type="checkbox" id="checkbox-grid" name="checkbox-grid">
       <label for="checkbox-grid" data-tooltip="Toggle visibility of the grid helper">Grid</label>
       <input type="text" id="tb-grid-size" class="settings-textbox">
     </div>
