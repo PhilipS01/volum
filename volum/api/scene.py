@@ -33,10 +33,9 @@ def create_scene(payload: ScenePayload):
         obj_dict = obj_def.model_dump(exclude_none=True)
         # Use builder to instantiate Python object
         obj = build_object_from_dict(obj_dict, scene.registry)
-        
-        if runtime_config.debug:
-            print(f"{TerminalColors.INFO}Adding object{TerminalColors.RESET} of type {TerminalColors.BOLD}{obj.__class__.__name__}{TerminalColors.RESET}: {obj.to_dict()}")
-        
         scene.add_object(obj)
+
+        if runtime_config.debug:
+            print(f"{TerminalColors.SUCCESS}Added object{TerminalColors.ENDC} of type {TerminalColors.BOLD}{obj.__class__.__name__}{TerminalColors.ENDC}: {obj.to_dict()}")
 
     return {"status": "ok", "object_count": len(scene.objects), "plugins": plugins}

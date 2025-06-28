@@ -1,4 +1,5 @@
 import * as THREE from './three-proxy.js';
+import { threetone } from './assets/gradient_maps/index.js';
 
 
 // Map object types to geometry constructors or custom builders
@@ -61,7 +62,67 @@ const materialMap = {
     opacity: props.opacity ?? 1,
     transparent: props.opacity < 1,
     linewidth: 1 // linewidth will be 1 on most platforms anyway (opengl limitations)
-  })
+  }),
+
+  PhysicalMaterial: (props) => new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(props.color ?? 0xffffff),
+    roughness: props.roughness ?? 0.5,
+    metalness: props.metalness ?? 0.5,
+    opacity: props.opacity ?? 1,
+    transparent: props.opacity < 1,
+    wireframe: props.wireframe ?? false,
+    side: THREE.DoubleSide,
+    clearcoat: props.clearcoat ?? 0,
+    clearcoatRoughness: props.clearcoat_roughness ?? 0,
+    sheen: props.sheen ?? 0,
+    sheenColor: new THREE.Color(props.sheen_color ?? 0x000000),
+    sheenRoughness: props.sheen_roughness ?? 1.0,
+    specularIntensity: props.specular_intensity ?? 1.0,
+    specularColor: new THREE.Color(props.specular_color ?? 0x111111),
+    flatShading: props.flat_shading ?? false,
+    ior: props.ior ?? 1.5, // index of refraction
+    transmission: props.transmission ?? 0, // for glass-like materials
+    emissive: new THREE.Color(props.emissive_color ?? 0x000000),
+    reflectivity: props.reflectivity ?? 0.5,
+    iridescence: props.iridescence ?? 0.0,
+    iridescenceIOR: props.iridescence_ior ?? 1.3,
+  }),
+
+  MatcapMaterial: (props) => new THREE.MeshMatcapMaterial({
+    matcap: props.matcap ? new THREE.TextureLoader().load(props.matcap) :
+      new THREE.TextureLoader().load('https://ksenia-k.com/img/threejs/matcaps/6.png'),
+    // no color, matcap texture defines color
+    opacity: props.opacity ?? 1,
+    transparent: props.opacity < 1,
+    wireframe: props.wireframe ?? false,
+    side: THREE.DoubleSide
+  }),
+
+  NormalMaterial: (props) => new THREE.MeshNormalMaterial({
+    flatShading: props.flatShading ?? false,
+    // no color, normal material uses vertex normals for color
+    opacity: props.opacity ?? 1,
+    transparent: props.opacity < 1,
+    wireframe: props.wireframe ?? false,
+    side: THREE.DoubleSide
+  }),
+
+  ToonMaterial: (props) => {
+    const gradientMapTexture = props.gradientMap 
+      ? new THREE.TextureLoader().load(props.gradientMap) 
+      : new THREE.TextureLoader().load(threetone);
+    gradientMapTexture.minFilter = THREE.NearestFilter;
+    gradientMapTexture.magFilter = THREE.NearestFilter;
+
+    return new THREE.MeshToonMaterial({
+      color: new THREE.Color(props.color ?? 0xffffff),
+      gradientMap: gradientMapTexture,
+      opacity: props.opacity ?? 1,
+      transparent: props.opacity < 1,
+      wireframe: props.wireframe ?? false,
+      side: THREE.DoubleSide
+    });
+  }
 };
 
 /**
@@ -70,13 +131,20 @@ const materialMap = {
  * @param {THREE.Scene} scene - The Three.js scene to populate.
  */
 export async function loadSceneFromJSON(sceneJSON, scene) {
-  const ambientLight = new THREE.AmbientLight( 0x404040, 5 ); // default light (soft white ambient light)
-  scene.add(ambientLight);
+  // Lights
+  scene.add(new THREE.AmbientLight(0xffffff, 0.3));
 
+  // Objects
   console.log(sceneJSON.objects.length, "objects in scene");
   for (const obj of sceneJSON.objects) {
     const threeObject = await buildObject(obj);
-    if (threeObject) scene.add(threeObject);
+    if (threeObject) {
+      if (threeObject.material && threeObject.material instanceof THREE.MeshPhysicalMaterial) {
+        threeObject.material.envMap = scene.environment; // set environment map for physical materials
+        threeObject.material.needsUpdate = true; // ensure material is updated
+      }
+      scene.add(threeObject);
+    }
     console.log(`Added object: ${obj.type}`, threeObject);
   }
 }

@@ -11,13 +11,13 @@ camera.position.set(0,10,10);
 camera.lookAt(0, 0, 0);
 
 // Lighting
-//renderer.physicallyCorrectLights = true;
-//renderer.toneMapping = THREE.ACESFilmicToneMapping;
-//renderer.toneMappingExposure = 1.0;
+renderer.useLegacyLights = true;
+renderer.toneMapping = THREE.ReinhardToneMapping;
+renderer.toneMappingExposure = 1.0;
 
-//const pmrem = new THREE.PMREMGenerator(renderer);
-//const envMap = pmrem.fromScene(new RoomEnvironment()).texture;
-//scene.environment = envMap;
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envMap = pmrem.fromScene(new RoomEnvironment()).texture;
+scene.environment = envMap;
 
 //document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);

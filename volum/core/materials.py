@@ -1,44 +1,52 @@
-from volum.config.constants import MaterialColors
+import warnings
+from volum.config.constants import MaterialColors, TerminalColors
+
+class MaterialWarning(Warning):
+    """Base class for all material-related warnings."""
+    pass
 
 class Material:
-    def __init__(self, color: str, texture, opacity: float):
+    def __init__(self, color: str, opacity: float):
         self.color = color
-        self.texture = texture
         self.opacity = opacity
 
     def to_dict(self):
         raise NotImplementedError("Subclasses must implement to_dict method")
     
     def __repr__(self):
-        return f"Material(color={self.color}, texture={self.texture}, opacity={self.opacity})"
+        return f"Material(color={self.color}, opacity={self.opacity})"
 
 class MeshMaterial(Material):
-    def __init__(self, color, texture, wireframe: bool, opacity):
-        super().__init__(color, texture, opacity)
+    def __init__(self, color, map, wireframe: bool, opacity):
+        super().__init__(color, opacity)
         self.wireframe = wireframe
+        self.map = map
 
     def to_dict(self):
         raise NotImplementedError("Subclasses must implement to_dict method")
     
+    def __repr__(self):
+        return f"MeshMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, opacity={self.opacity})"
+
 class BasicMaterial(MeshMaterial):
-    def __init__(self, color=MaterialColors.DEFAULT, texture=None, wireframe=False, opacity=1.0):
-        super().__init__(color, texture, wireframe, opacity)
+    def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, opacity=1.0):
+        super().__init__(color, map, wireframe, opacity)
 
     def to_dict(self):
         return {
             "type": "BasicMaterial",
             "color": self.color,
-            "texture": self.texture,
+            "map": self.map,
             "wireframe": self.wireframe,
             "opacity": self.opacity
         }
     
     def __repr__(self):
-        return f"BasicMaterial(color={self.color}, texture={self.texture}, wireframe={self.wireframe}, opacity={self.opacity})"
-    
+        return f"BasicMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, opacity={self.opacity})"
+
 class StandardMaterial(MeshMaterial):
-    def __init__(self, color=MaterialColors.DEFAULT, texture=None, wireframe=False, roughness: float=0.5, metalness: float=0.5, opacity=1.0):
-        super().__init__(color, texture, wireframe, opacity)
+    def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, roughness: float=0.5, metalness: float=0.5, opacity=1.0):
+        super().__init__(color, map, wireframe, opacity)
         self.roughness = roughness
         self.metalness = metalness
 
@@ -46,7 +54,7 @@ class StandardMaterial(MeshMaterial):
         return {
             "type": "StandardMaterial",
             "color": self.color,
-            "texture": self.texture,
+            "map": self.map,
             "wireframe": self.wireframe,
             "opacity": self.opacity,
             "roughness": self.roughness,
@@ -54,11 +62,11 @@ class StandardMaterial(MeshMaterial):
         }
     
     def __repr__(self):
-        return f"StandardMaterial(color={self.color}, texture={self.texture}, wireframe={self.wireframe}, opacity={self.opacity}, roughness={self.roughness}, metalness={self.metalness})"
+        return f"StandardMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, opacity={self.opacity}, roughness={self.roughness}, metalness={self.metalness})"
 
 class PhongMaterial(MeshMaterial):
-    def __init__(self, color=MaterialColors.DEFAULT, texture=None, wireframe=False, shininess: float=30, specular_color: str=MaterialColors.SPECULAR, opacity=1.0):
-        super().__init__(color, texture, wireframe, opacity)
+    def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, shininess: float=30.0, specular_color: str=MaterialColors.SPECULAR, opacity=1.0):
+        super().__init__(color, map, wireframe, opacity)
         self.shininess = shininess
         self.specular_color = specular_color
 
@@ -66,7 +74,7 @@ class PhongMaterial(MeshMaterial):
         return {
             "type": "PhongMaterial",
             "color": self.color,
-            "texture": self.texture,
+            "map": self.map,
             "wireframe": self.wireframe,
             "opacity": self.opacity,
             "shininess": self.shininess,
@@ -74,19 +82,19 @@ class PhongMaterial(MeshMaterial):
         }
     
     def __repr__(self):
-        return f"PhongMaterial(color={self.color}, texture={self.texture}, wireframe={self.wireframe}, opacity={self.opacity}, shininess={self.shininess}, specular_color={self.specular_color})"
+        return f"PhongMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, opacity={self.opacity}, shininess={self.shininess}, specular_color={self.specular_color})"
 
 class LineMaterial(Material):
-    def __init__(self, color, texture, opacity, width: float):
-        super().__init__(color, texture, opacity)
+    def __init__(self, color, opacity, width: float):
+        super().__init__(color, opacity)
         self.width = width
 
     def to_dict(self):
         raise NotImplementedError("Subclasses must implement to_dict method")
 
 class LineBasicMaterial(LineMaterial):
-    def __init__(self, color=MaterialColors.DEFAULT, texture=None, width=1.0, opacity=1.0):
-        super().__init__(color, texture, opacity, width)
+    def __init__(self, color=MaterialColors.DEFAULT, width=1.0, opacity=1.0):
+        super().__init__(color, opacity, width)
 
     def to_dict(self):
         return {
@@ -100,8 +108,8 @@ class LineBasicMaterial(LineMaterial):
         return f"LineBasicMaterial(color={self.color}, width={self.width}, opacity={self.opacity})"
     
 class LineDashedMaterial(LineMaterial):
-    def __init__(self, color=MaterialColors.DEFAULT, texture=None, width=1.0, dash_size: float=3, gap_size: float=1, opacity=1.0):
-        super().__init__(color, texture, opacity, width)
+    def __init__(self, color=MaterialColors.DEFAULT, width=1.0, dash_size: float=3.0, gap_size: float=1.0, opacity=1.0):
+        super().__init__(color, opacity, width)
         self.dash_size = dash_size
         self.gap_size = gap_size
 
@@ -117,3 +125,142 @@ class LineDashedMaterial(LineMaterial):
     
     def __repr__(self):
         return f"LineDashedMaterial(color={self.color}, width={self.width}, dash_size={self.dash_size}, gap_size={self.gap_size}, opacity={self.opacity})"
+    
+class PhysicalMaterial(MeshMaterial):
+    def __init__(
+        self,
+        color=MaterialColors.DEFAULT,
+        map=None,
+        wireframe=False,
+        roughness: float=0.5,
+        metalness: float=0.5,
+        emissive_color: str="#000000",
+        ior: float= 1.5,
+        reflectivity: float=0.5,
+        iridescence: float = 0.0,
+        iridescence_ior: float=1.3,
+        transmission: float=0.0,
+        sheen: float=0.0,
+        sheen_roughness: float=1.0,
+        sheen_color: str="#000000",
+        clearcoat: float=0.0,
+        clearcoat_roughness: float=0.0,
+        specular_intensity: float=1.0,
+        specular_color: str=MaterialColors.SPECULAR,
+        flat_shading=False,
+        opacity=1.0
+    ):
+        super().__init__(color, map, wireframe, opacity)
+        self.roughness = roughness
+        self.metalness = metalness
+        self.emissive_color = emissive_color
+        self.ior = ior
+        self.reflectivity = reflectivity
+        self.iridescence = iridescence
+        self.iridescence_ior = iridescence_ior
+        self.transmission = transmission
+        self.sheen = sheen
+        self.sheen_roughness = sheen_roughness
+        self.sheen_color = sheen_color
+        self.clearcoat = clearcoat
+        self.clearcoat_roughness = clearcoat_roughness
+        self.specular_intensity = specular_intensity
+        self.specular_color = specular_color
+        self.flat_shading = flat_shading
+
+    def to_dict(self):
+        return {    
+            "type": "PhysicalMaterial",
+            "color": self.color,
+            "map": self.map,
+            "wireframe": self.wireframe,
+            "opacity": self.opacity,
+            "roughness": self.roughness,
+            "metalness": self.metalness,
+            "emissive_color": self.emissive_color,
+            "ior": self.ior,
+            "reflectivity": self.reflectivity,
+            "iridescence": self.iridescence,
+            "iridescence_ior": self.iridescence_ior,
+            "transmission": self.transmission,
+            "sheen": self.sheen,
+            "sheen_roughness": self.sheen_roughness,
+            "sheen_color": self.sheen_color,
+            "clearcoat": self.clearcoat,
+            "clearcoat_roughness": self.clearcoat_roughness,
+            "specular_intensity": self.specular_intensity,
+            "specular_color": self.specular_color,
+            "flat_shading": self.flat_shading
+        }
+    
+    def __repr__(self):
+        return f"PhysicalMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, opacity={self.opacity}, roughness={self.roughness}, metalness={self.metalness}, emissive_color={self.emissive_color}, ior={self.ior}, reflectivity={self.reflectivity}, iridescence={self.iridescence}, iridescence_ior={self.iridescence_ior}, sheen={self.sheen}, sheen_roughness={self.sheen_roughness}, sheen_color={self.sheen_color}, clearcoat={self.clearcoat}, clearcoatRoughness={self.clearcoat_roughness}, specular_intensity={self.specular_intensity}, specular_color={self.specular_color}, flat_shading={self.flat_shading})"
+
+
+class MatcapMaterial(MeshMaterial):
+    def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, matcap=None, opacity=1.0):
+        if color is not MaterialColors.DEFAULT:
+            warnings.warn(
+                f"{TerminalColors.WARNING}MatcapMaterial color is set to {color}, but matcap texture will override it.{TerminalColors.ENDC}",
+                category=MaterialWarning,
+                stacklevel=2
+            )
+        
+        super().__init__(color, map, wireframe, opacity)
+        self.matcap = matcap
+
+    def to_dict(self):
+        return {
+            "type": "MatcapMaterial",
+            "color": self.color,
+            "map": self.map,
+            "wireframe": self.wireframe,
+            "matcap": self.matcap,
+            "opacity": self.opacity
+        }
+    
+    def __repr__(self):
+        return f"MatcapMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, matcap={self.matcap}, opacity={self.opacity})"
+
+class NormalMaterial(MeshMaterial):
+    def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, flat_shading=False, opacity=1.0):
+        if color is not MaterialColors.DEFAULT:
+            warnings.warn(
+                f"{TerminalColors.WARNING}NormalMaterial color is set to {color}, but it will be ignored.{TerminalColors.ENDC}",
+                category=MaterialWarning,
+                stacklevel=2
+            )
+
+        super().__init__(color, map, wireframe, opacity)
+        self.flat_shading = flat_shading
+
+    def to_dict(self):
+        return {
+            "type": "NormalMaterial",
+            "color": self.color,
+            "map": self.map,
+            "wireframe": self.wireframe,
+            "flat_shading": self.flat_shading,
+            "opacity": self.opacity
+        }
+    
+    def __repr__(self):
+        return f"NormalMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, flat_shading={self.flat_shading}, opacity={self.opacity})"
+
+class ToonMaterial(MeshMaterial):
+    def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, gradient_map=None, opacity=1.0):
+        super().__init__(color, map, wireframe, opacity)
+        self.gradient_map = gradient_map
+        
+    def to_dict(self):
+        return {
+            "type": "ToonMaterial",
+            "color": self.color,
+            "map": self.map,
+            "wireframe": self.wireframe,
+            "gradient_map": self.gradient_map,
+            "opacity": self.opacity
+        }
+    
+    def __repr__(self):
+        return f"ToonMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, gradient_map={self.gradient_map}, opacity={self.opacity})"

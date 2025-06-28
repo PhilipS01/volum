@@ -27,4 +27,4 @@ class TerminalColors:
     ERROR_BOLD = "\033[1;91m"  # Bold Red
 
     BOLD = "\033[1m"  # Bold
-    RESET = "\033[0m"  # Reset to default color
+    ENDC = "\033[0m"  # Reset to default color

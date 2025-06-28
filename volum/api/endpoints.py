@@ -117,14 +117,14 @@ class LiveFileHandler(FileSystemEventHandler):
         
         if path == self.scene_path:
             if runtime_config.debug:
-                print(f"{TerminalColors.INFO}{self.scene_path.split()[-1]}, modified scene file, reloading ...{TerminalColors.RESET}")
+                print(f"{TerminalColors.INFO}{self.scene_path.split()[-1]}, modified scene file, reloading ...{TerminalColors.ENDC}")
             
             create_scene_from_path(str(self.scene_path))
             asyncio.run_coroutine_threadsafe(manager.broadcast(self.event_name), loop)
 
         if self.python_path and path == self.python_path: # usually happens first, this will change the file under scene_path and trigger the broadcast (see above)
             if runtime_config.debug:
-                print(f"{TerminalColors.INFO}{self.python_path.split()[-1]}, modified python file, reloading ...{TerminalColors.RESET}")
+                print(f"{TerminalColors.INFO}{self.python_path.split()[-1]}, modified python file, reloading ...{TerminalColors.ENDC}")
 
             async def restart_script():
                 if self.python_path:
