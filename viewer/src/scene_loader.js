@@ -1,5 +1,5 @@
 import * as THREE from './three-proxy.js';
-import { threetone } from './assets/gradient_maps/index.js';
+import { threetone } from '/static/assets/index.js';
 
 
 // Map object types to geometry constructors or custom builders
@@ -139,7 +139,7 @@ export async function loadSceneFromJSON(sceneJSON, scene) {
   for (const obj of sceneJSON.objects) {
     const threeObject = await buildObject(obj);
     if (threeObject) {
-      if (threeObject.material && threeObject.material instanceof THREE.MeshPhysicalMaterial) {
+      if (threeObject.material && 'envMap' in threeObject.material) {
         threeObject.material.envMap = scene.environment; // set environment map for physical materials
         threeObject.material.needsUpdate = true; // ensure material is updated
       }

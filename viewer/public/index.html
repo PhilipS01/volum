@@ -19,7 +19,7 @@
       left: 20px;
       z-index: 100;
       display: grid;
-      grid-template-columns: 24px 1fr auto;
+      grid-template-columns: 24px 1fr 70px;
       gap: 8px 12px;
       background: rgba(138,138,150, 0.7);
       color: white;
@@ -29,6 +29,7 @@
 
     .settings-row {
       display: contents;
+      line-height: 1.44em;
     }
     .settings-row input[type="checkbox"] {
       grid-column: 1; /* Checkbox in the first column */
@@ -37,6 +38,8 @@
     .settings-row label {
       grid-column: 2; /* Label in the second column */
       user-select: none;
+      margin-top: auto;
+      margin-bottom: auto;
     }
 
     [data-tooltip] {
@@ -69,7 +72,6 @@
 
     .settings-row .settings-textbox {
       grid-column: 3; /* Textbox in the third column */
-      width: 60px;
       border: 1px solid #ccc;
       border-radius: 4px;
       font-family: "Ubuntu", sans-serif;
@@ -91,10 +93,26 @@
       color: #333;
       transition: background 0.2s ease-in-out;
       text-align: center;
+      display: none;
     }
 
-  
-    .settings-row input[type="checkbox"]:checked + label + input.settings-textbox {
+    .settings-row .settings-button {
+      grid-column: 3; /* Button in the third column */
+      background: none;
+      color: #333;
+      border: 0;
+      border-radius: 4px;
+      font-family: "Ubuntu", sans-serif;
+      font-size: 0.86em;
+      cursor: pointer;
+      transition: background 0.2s ease-in-out;
+      display: none;
+    }
+
+
+    .settings-row input[type="checkbox"]:checked + label + input.settings-textbox,
+    .settings-row input[type="checkbox"]:checked + label + input.settings-button,
+    .settings-row input[type="checkbox"]:checked + label + select.settings-dropdown {
       display: inline-block; /* Show the textbox when the checkbox is checked */
     }
 
@@ -105,7 +123,7 @@
     .subheading {
       font-size: 1em;
       font-weight: 500;
-      margin-top: 8px;
+      margin-top: 14px;
       margin-bottom: 4px;
       text-align: left;
       grid-column: span 3;
@@ -162,12 +180,23 @@
     </div>
     <div class="settings-row light-italic">
       <input type="checkbox" id="checkbox-color" name="checkbox-color" checked disabled>
-      <label for="select-color" data-tooltip="Set background color of the scene (doesn't affect lighting)">Color</label>
+      <label for="select-color" data-tooltip="Set the scene background color (doesn't affect lighting)">Color</label>
       <select id="select-color" class="settings-dropdown">
         <option value="0x444444">Gray</option>
         <option value="0xffffff">White</option>
         <option value="0x000000">Black</option>
       </select>
+    </div>
+    <div class="settings-row light-italic">
+      <input type="checkbox" id="checkbox-env" name="checkbox-env">
+      <label for="checkbox-env" data-tooltip="Environment map for the scene. 'generated' <--> Physical- & StandardMaterials. 'custom' (HDR/EXR) <--> PhysicalMaterials">Environment</label>
+      <select id="select-env" class="settings-dropdown">
+        <option value="room">Lights (generated)</option>
+        <option value="studio">Studio</option>
+        <option value="outdoor">Outdoor</option>
+        <option value="custom">Custom...</option>
+      </select>
+      <input type="file" id="file-env-hidden" accept=".hdr,.exr" placeholder="Upload HDR/EXR" style="display: none;">
     </div>
 
     <span class="light-italic subheading">Helpers</span>
@@ -178,7 +207,7 @@
     <div class="settings-row light-italic">
       <input type="checkbox" id="checkbox-grid" name="checkbox-grid">
       <label for="checkbox-grid" data-tooltip="Toggle visibility of the grid helper">Grid</label>
-      <input type="text" id="tb-grid-size" class="settings-textbox">
+      <input type="text" id="tb-grid-size" class="settings-textbox" placeholder="Size">
     </div>
   </div>
 </body>

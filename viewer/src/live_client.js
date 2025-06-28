@@ -1,7 +1,9 @@
 import * as THREE               from '/static/three-proxy.js';
 import { OrbitControls }        from '/static/three-proxy.js';
 import { loadSceneFromJSON }    from '/static/scene_loader.js';
-import { RoomEnvironment } from '/static/three-proxy.js';
+import { RoomEnvironment }      from '/static/three-proxy.js';
+import { RGBELoader }           from '/static/three-proxy.js';
+import { studioEnv, outdoorEnv }from '/static/assets/index.js';
 
 const canvas = document.getElementById('three-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -10,16 +12,50 @@ const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 20
 camera.position.set(0,10,10);
 camera.lookAt(0, 0, 0);
 
-// Lighting
-renderer.useLegacyLights = true;
-renderer.toneMapping = THREE.ReinhardToneMapping;
-renderer.toneMappingExposure = 1.0;
 
-const pmrem = new THREE.PMREMGenerator(renderer);
-const envMap = pmrem.fromScene(new RoomEnvironment()).texture;
-scene.environment = envMap;
+function applyEnvironmentMap(tex) {
+    scene.environment = tex;
+    //scene.background = tex; // optional
 
-//document.body.appendChild(renderer.domElement);
+    scene.traverse((child) => {
+        if (child.isMesh && child.material && 'envMap' in child.material) {
+            child.material.envMap = tex;
+            child.material.needsUpdate = true;
+        }
+    });
+    console.log('Environment loaded');
+}
+
+function removeEnvironmentMap() {
+    scene.environment = null;
+    scene.background = null; // optional, if you want to clear the background
+    
+    scene.traverse((child) => {
+        if (child.isMesh && child.material && 'envMap' in child.material) {
+            child.material.envMap = null;
+            child.material.needsUpdate = true;
+        }
+    });
+    console.log('Environment map removed');
+}
+
+function loadUserEnvironment(url) {
+    if (url.endsWith('.hdr')) {
+        console.log('Loading HDR environment:', url);
+    } else if (url.endsWith('.exr')) {
+        console.log('Loading EXR environment:', url);
+    } else {
+        console.warn('Unsupported environment format:', url);
+    }
+    const loader = new RGBELoader();
+    loader.load(url, (hdrTexture) => {
+        hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
+
+        applyEnvironmentMap(hdrTexture);
+    });
+}
+
+
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 renderer.shadowMap.enabled = true;
@@ -91,6 +127,96 @@ bgColorInput.addEventListener('change', (e) => {
     const color = parseInt(e.target.value, 16); // Convert hex string to number
     scene.background = new THREE.Color(color);
     console.log(`Background color set to ${e.target.value}`);
+});
+
+const preset_envs = {
+    'studio': studioEnv,
+    'outdoor': outdoorEnv
+};
+
+function setEnvironment(env_value) {
+    switch (env_value) {
+        case 'room':
+            renderer.useLegacyLights = true;
+            renderer.toneMapping = THREE.ReinhardToneMapping;
+            renderer.toneMappingExposure = 1.0;
+
+            const pmrem = new THREE.PMREMGenerator(renderer);
+            const envMap = pmrem.fromScene(new RoomEnvironment()).texture;
+            applyEnvironmentMap(envMap);
+            pmrem.dispose();
+            break;
+        case 'custom':
+            fileEnvHidden.click(); // trigger hidden file input
+            return; // reset until file is selected
+        case 'studio':
+        case 'outdoor':
+            // Use preset environment
+            renderer.useLegacyLights = false;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping; // reset to no tone mapping
+            renderer.toneMappingExposure = 1.0;
+            loadUserEnvironment(preset_envs[env_value]);
+            break;
+        default:
+            // Custom HDR/EXR environment
+            loadUserEnvironment(env_value);
+            renderer.useLegacyLights = false; // disable legacy lights
+            renderer.toneMapping = THREE.ACESFilmicToneMapping; // reset to no tone mapping
+            renderer.toneMappingExposure = 1.0;
+            break;
+    }
+}
+
+const selectEnv = document.getElementById('select-env');
+selectEnv.addEventListener('change', (e) => {
+    if (e.target.value === 'custom') {
+        fileEnvHidden.click(); // trigger file dialog
+        // file handler will set the environment
+        return;
+    }
+    setEnvironment(e.target.value);
+});
+
+const checkboxEnv = document.getElementById('checkbox-env');
+checkboxEnv.checked = false;
+checkboxEnv.addEventListener('change', (e) => {
+    const enabled = e.target.checked;
+    if (enabled) {
+        setEnvironment(selectEnv.value);
+        console.log('Environment map enabled');
+    } else {
+        setEnvironment('room'); // reset to default environment
+        removeEnvironmentMap();
+        const color = parseInt(bgColorInput.value, 16); // Convert hex string to number
+        scene.background = new THREE.Color(color);
+        renderer.toneMapping = THREE.NoToneMapping
+        console.log('Environment map disabled');
+    }
+});
+
+const fileEnvHidden = document.getElementById('file-env-hidden');
+fileEnvHidden.addEventListener('change', (e) => {
+  if (e.target.files.length > 0) {
+    const fileName = e.target.files[0].name;
+    const fileUrl = URL.createObjectURL(e.target.files[0]);
+
+    // Remove existing custom file option (but keep the "Custom..." option)
+    const existingCustomFile = Array.from(selectEnv.options).find(opt => 
+        opt.value.startsWith('custom-') && opt.value !== 'custom'
+    );
+    if (existingCustomFile) {
+        existingCustomFile.remove();
+    }
+    
+    // Add new option with file name (insert before "Custom..." option)
+    const customOption = Array.from(selectEnv.options).find(opt => opt.value === 'custom');
+    const newOption = new Option(fileName, fileUrl);
+    selectEnv.insertBefore(newOption, customOption);
+    selectEnv.value = fileUrl;
+    
+    console.log('Loading custom environment:', fileName);
+    loadUserEnvironment(fileUrl);
+  }
 });
 
 
