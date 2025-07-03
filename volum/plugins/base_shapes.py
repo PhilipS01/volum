@@ -1,11 +1,18 @@
 from volum.core.plugin import ScenePlugin
 
-from volum.objects.box import Box
-from volum.objects.sphere import Sphere
-from volum.objects.plane import Plane
-from volum.objects.transform import Transform
-from volum.objects.cylinder import Cylinder
-from volum.objects.line import Line
+from volum.objects import Box
+from volum.objects import Sphere
+from volum.objects import Plane
+from volum.objects import Transform
+from volum.objects import Cylinder
+from volum.objects import Line
+from volum.objects import Capsule
+from volum.objects import Cone
+from volum.objects import Circle
+from volum.objects import Ring
+from volum.objects import PlotImage
+from volum.objects import Torus
+from volum.objects import TorusKnot
 
 
 class BaseShapesPlugin(ScenePlugin):
@@ -20,3 +27,10 @@ class BaseShapesPlugin(ScenePlugin):
         registry.register_type("Transform", Transform)
         registry.register_type("Cylinder", Cylinder)
         registry.register_type("Line", Line)
+        registry.register_type("Capsule", Capsule)
+        registry.register_type("Cone", Cone)
+        registry.register_type("Circle", Circle)
+        registry.register_type("Ring", Ring)
+        registry.register_type("Torus", Torus)
+        registry.register_type("TorusKnot", TorusKnot)
+        registry.register_type("PlotImage", PlotImage)

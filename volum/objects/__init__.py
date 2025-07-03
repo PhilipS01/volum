@@ -6,6 +6,19 @@ from volum.objects.cylinder import Cylinder
 from volum.objects.line import Line
 from volum.objects.point_light import PointLight
 
+from volum.objects.capsule import Capsule
+from volum.objects.cone import Cone
+from volum.objects.circle import Circle
+from volum.objects.dodecahedron import Dodecahedron
+from volum.objects.icosahedron import Icosahedron
+from volum.objects.octahedron import Octahedron
+from volum.objects.ring import Ring
+from volum.objects.tetrahedron import Tetrahedron
+from volum.objects.torus import Torus
+from volum.objects.torusknot import TorusKnot
+
+from volum.objects.plotimage import PlotImage
+
 __all__ = [
     "Box",
     "Sphere",
@@ -13,5 +26,16 @@ __all__ = [
     "Transform",
     "Cylinder",
     "Line",
-    "PointLight"
+    "PointLight",
+    "Capsule",
+    "Cone",
+    "Circle",
+    "Dodecahedron",
+    "Icosahedron",
+    "Octahedron",
+    "Ring",
+    "Tetrahedron",
+    "Torus",
+    "TorusKnot",
+    "PlotImage"
 ]
