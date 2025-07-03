@@ -1,4 +1,4 @@
-import os, json
+import os, json, time
 
 from volum.api.schema import ScenePayload, SceneObjectPayload
 from volum.api.scene import scene, create_scene
@@ -14,10 +14,22 @@ def set_main_event_loop(loop):
 def get_main_event_loop():
     return _main_loop
 
+def _safe_json_load(path, retries=5, delay=0.1):
+    for i in range(retries):
+        try:
+            if os.path.getsize(path) == 0:
+                raise ValueError("File is empty")
+
+            with open(path, "r") as f:
+                return json.load(f)
+
+        except (json.JSONDecodeError, ValueError):
+            time.sleep(delay)
+    raise RuntimeError(f"Failed to load JSON from {path} after {retries} retries")
+
 def create_scene_from_path(path: str):
     if path and os.path.isfile(path):
-        with open(path, "r") as f:
-            data = json.load(f)
+        data = _safe_json_load(path)
         scene.clear()
         # Create a ScenePayload from the loaded data
         if isinstance(data, list):
