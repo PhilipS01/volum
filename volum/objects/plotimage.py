@@ -25,7 +25,7 @@ class PlotImage(SceneObject):
             height (int, optional): The height of the plot image. Defaults to 4.
             double_sided (bool, optional): Whether the plot image is double-sided. Defaults to False.
         """
-        
+
         super().__init__(material=None) # PlotImage does not have a material
         self.plot = plot
         self._image = None  # placeholder
@@ -91,6 +91,9 @@ class PlotImage(SceneObject):
         }
     
     def plot_to_image_base64(self):
+        # Ensure plot has same aspect ratio as specified width and height
+        self.plot.set_size_inches(self.width, self.height, forward=True)
+        # Convert the plot to a PNG image in base64 format
         buf = io.BytesIO()
         self.plot.savefig(buf, format='png', bbox_inches='tight', dpi=300)
         buf.seek(0)
