@@ -17,6 +17,15 @@ class PlotImage(SceneObject):
         return instance
 
     def __init__(self, plot: figure.Figure, width: int = 5, height: int = 4, double_sided: bool = False):
+        """Initialize the PlotImage.
+
+        Args:
+            plot (figure.Figure): The matplotlib figure to be used as the plot.
+            width (int, optional): The width of the plot image. Defaults to 5.
+            height (int, optional): The height of the plot image. Defaults to 4.
+            double_sided (bool, optional): Whether the plot image is double-sided. Defaults to False.
+        """
+        
         super().__init__(material=None) # PlotImage does not have a material
         self.plot = plot
         self._image = None  # placeholder
@@ -57,7 +66,7 @@ class PlotImage(SceneObject):
         if "ylim" in meta:
             ax.set_ylim(meta["ylim"])
 
-        return cls(plot=fig, width=data.get("width", 5), height=data.get("height", 4))
+        return cls(plot=fig, width=data.get("width", 5), height=data.get("height", 4), double_sided=data.get("double_sided", False))
 
     def to_dict(self):
         x_data = []

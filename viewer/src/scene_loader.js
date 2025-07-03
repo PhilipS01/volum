@@ -238,6 +238,7 @@ async function buildObject(obj) {
   }
 
   else if (obj.type === 'PlotImage') {
+    console.log(obj.double_sided, "double_sided");
     const geometryBuilder = typeMap['Plane'];
     if (!geometryBuilder) {
       console.warn(`Unknown plane type: ${obj.type}`);
@@ -245,7 +246,7 @@ async function buildObject(obj) {
     }
 
     const geometry = geometryBuilder(obj);
-    const material = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load(obj.image_data), side: obj.double_sided ? THREE.DoubleSide : THREE.FrontSide, transparent: true });
+    const material = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load(obj.image_data), transparent: true, side: obj.double_sided ? THREE.DoubleSide : THREE.FrontSide });
     return new THREE.Mesh(geometry, material);
   }
 
