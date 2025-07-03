@@ -34,7 +34,7 @@ class Sphere(SceneObject):
     
     def distance_to(self, point):
         radius = self.radius
-        return max(0, np.linalg.norm(point) - radius)
+        return np.linalg.norm(point) - radius
 
     def __repr__(self):
         return f"Sphere(radius={self.radius}, material={self.material})"

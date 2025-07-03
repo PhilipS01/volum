@@ -28,7 +28,7 @@ class Box(SceneObject):
     
     def distance_to(self, point):
         half_extents = np.array([self.width, self.height, self.depth]) * 0.5
-        clamped = np.maximum(np.abs(point) - half_extents, 0)
+        clamped = np.maximum(np.abs(point) - half_extents, 0) # distance along each axis
         return np.linalg.norm(clamped)
     
     def __repr__(self):
