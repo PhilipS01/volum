@@ -1,10 +1,14 @@
 import numpy as np
+from typing import Optional
 from volum.core.scene import SceneObject
 from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Cylinder(SceneObject):
     """Represents a cylinder object in the scene."""
-    def __init__(self, radius_top: float, radius_bottom: float, height: float, radial_segments: int = 64, material=StandardMaterial()):
+    def __init__(self, radius_top: float, radius_bottom: float, height: float, radial_segments: int = 64, material: Optional[MeshMaterial] = None):
+        if material is None:
+            material = StandardMaterial()
+
         if not isinstance(material, MeshMaterial):
             raise TypeError(f"Cylinder expects MeshMaterial, got {type(material)}")
 
