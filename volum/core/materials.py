@@ -6,6 +6,7 @@ class MaterialWarning(Warning):
     pass
 
 class Material:
+    """Base class for materials, providing common properties like color and opacity."""
     def __init__(self, color: str, opacity: float):
         self.color = color
         self.opacity = opacity
@@ -17,6 +18,7 @@ class Material:
         return f"Material(color={self.color}, opacity={self.opacity})"
 
 class MeshMaterial(Material):
+    """Base class for mesh materials, providing common properties like color, map, wireframe, and opacity."""
     def __init__(self, color, map, wireframe: bool, opacity):
         super().__init__(color, opacity)
         self.wireframe = wireframe
@@ -29,6 +31,7 @@ class MeshMaterial(Material):
         return f"MeshMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, opacity={self.opacity})"
 
 class BasicMaterial(MeshMaterial):
+    """Basic material for simple shading, allowing customization of color, map, wireframe, and opacity."""
     def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, opacity=1.0):
         super().__init__(color, map, wireframe, opacity)
 
@@ -45,6 +48,7 @@ class BasicMaterial(MeshMaterial):
         return f"BasicMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, opacity={self.opacity})"
 
 class StandardMaterial(MeshMaterial):
+    """Material that simulates standard shading, allowing for roughness and metalness properties."""
     def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, roughness: float=0.5, metalness: float=0.5, opacity=1.0):
         super().__init__(color, map, wireframe, opacity)
         self.roughness = roughness
@@ -65,6 +69,7 @@ class StandardMaterial(MeshMaterial):
         return f"StandardMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, opacity={self.opacity}, roughness={self.roughness}, metalness={self.metalness})"
 
 class PhongMaterial(MeshMaterial):
+    """Material that simulates Phong shading, allowing for shininess and specular highlights."""
     def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, shininess: float=30.0, specular_color: str=MaterialColors.SPECULAR, opacity=1.0):
         super().__init__(color, map, wireframe, opacity)
         self.shininess = shininess
@@ -85,6 +90,7 @@ class PhongMaterial(MeshMaterial):
         return f"PhongMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, opacity={self.opacity}, shininess={self.shininess}, specular_color={self.specular_color})"
 
 class LineMaterial(Material):
+    """Base class for line materials, providing common properties like color, opacity, and width."""
     def __init__(self, color, opacity, width: float):
         super().__init__(color, opacity)
         self.width = width
@@ -93,6 +99,7 @@ class LineMaterial(Material):
         raise NotImplementedError("Subclasses must implement to_dict method")
 
 class LineBasicMaterial(LineMaterial):
+    """Material for basic lines, allowing customization of color, width, and opacity."""
     def __init__(self, color=MaterialColors.DEFAULT, width=1.0, opacity=1.0):
         super().__init__(color, opacity, width)
 
@@ -108,6 +115,7 @@ class LineBasicMaterial(LineMaterial):
         return f"LineBasicMaterial(color={self.color}, width={self.width}, opacity={self.opacity})"
     
 class LineDashedMaterial(LineMaterial):
+    """Material for dashed lines, allowing customization of dash and gap sizes."""
     def __init__(self, color=MaterialColors.DEFAULT, width=1.0, dash_size: float=3.0, gap_size: float=1.0, opacity=1.0):
         super().__init__(color, opacity, width)
         self.dash_size = dash_size
@@ -127,6 +135,7 @@ class LineDashedMaterial(LineMaterial):
         return f"LineDashedMaterial(color={self.color}, width={self.width}, dash_size={self.dash_size}, gap_size={self.gap_size}, opacity={self.opacity})"
     
 class PhysicalMaterial(MeshMaterial):
+    """Material that simulates realistic physical properties, including roughness, metalness, and more."""
     def __init__(
         self,
         color=MaterialColors.DEFAULT,
@@ -198,6 +207,7 @@ class PhysicalMaterial(MeshMaterial):
 
 
 class MatcapMaterial(MeshMaterial):
+    """Material that uses a matcap texture for shading, typically used for stylized rendering."""
     def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, matcap=None, opacity=1.0):
         if color is not MaterialColors.DEFAULT:
             warnings.warn(
@@ -223,6 +233,7 @@ class MatcapMaterial(MeshMaterial):
         return f"MatcapMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, matcap={self.matcap}, opacity={self.opacity})"
 
 class NormalMaterial(MeshMaterial):
+    """Material that uses normals for shading, typically used for debugging or visualizing normals."""
     def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, flat_shading=False, opacity=1.0):
         if color is not MaterialColors.DEFAULT:
             warnings.warn(
@@ -248,6 +259,7 @@ class NormalMaterial(MeshMaterial):
         return f"NormalMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, flat_shading={self.flat_shading}, opacity={self.opacity})"
 
 class ToonMaterial(MeshMaterial):
+    """Material that simulates a toon shading effect, allowing for a gradient map and flat shading."""
     def __init__(self, color=MaterialColors.DEFAULT, map=None, wireframe=False, gradient_map=None, opacity=1.0):
         super().__init__(color, map, wireframe, opacity)
         self.gradient_map = gradient_map
