@@ -24,8 +24,6 @@ const typeMap = {
   Torus: (props) => new THREE.TorusGeometry(props.radius, props.tube_radius, props.radial_segments ?? 16, props.tubular_segments ?? 48, props.arc ?? Math.PI * 2),
   TorusKnot: (props) => new THREE.TorusKnotGeometry(props.radius, props.tube_radius, props.tubular_segments ?? 64, props.radial_segments ?? 16, props.p ?? 2, props.q ?? 3),
 
-
-
   // Custom example
   Pyramid: (props) => buildPyramidGeometry(props),
 
@@ -239,8 +237,20 @@ async function buildObject(obj) {
     buildObjectDefault(obj, false, true);
   }
 
+  else if (obj.type === 'PlotImage') {
+    const geometryBuilder = typeMap['Plane'];
+    if (!geometryBuilder) {
+      console.warn(`Unknown plane type: ${obj.type}`);
+      return null;
+    }
+
+    const geometry = geometryBuilder(obj);
+    const material = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load(obj.image_data), side: obj.double_sided ? THREE.DoubleSide : THREE.FrontSide, transparent: true });
+    return new THREE.Mesh(geometry, material);
+  }
+
   else {
-    buildObjectDefault(obj);
+    return buildObjectDefault(obj);
   }
 }
 

@@ -53,5 +53,9 @@ def build_object_from_dict(obj_dict: Dict[str, Any], registry: ObjectRegistry) -
         else:
             kwargs[attr] = val
 
-    # Instantiate and return
-    return cls(*args, **kwargs)
+    # Check if class has a from_dict method
+    if hasattr(cls, "from_dict"):
+        return cls.from_dict(obj_dict)
+    else:
+        # Otherwise, instantiate the class with args and kwargs
+        return cls(*args, **kwargs)
