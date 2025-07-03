@@ -236,48 +236,34 @@ async function buildObject(obj) {
   }
 
   else if (obj.type === 'Plane') {
-    const geometryBuilder = typeMap[obj.type];
-    if (!geometryBuilder) {
-      console.warn(`Unknown plane type: ${obj.type}`);
-      return null;
-    }
-
-    const materialBuilder = materialMap[obj.material.type];
-      if (!materialBuilder) {
-        console.warn(`Unknown material type: ${obj.material.type}`);
-        return null;
-      }
-
-    const geometry = geometryBuilder(obj);
-    const material = materialBuilder(obj.material);
-    const mesh = new THREE.Mesh(geometry, material);
-    //mesh.castShadow = true;
-    mesh.receiveShadow = true;
-
-    return mesh;
+    buildObjectDefault(obj, false, true);
   }
 
   else {
-      const geometryBuilder = typeMap[obj.type];
-      if (!geometryBuilder) {
-        console.warn(`Unknown object type: ${obj.type}`);
-        return null;
-      }
-
-      const materialBuilder = materialMap[obj.material.type];
-      if (!materialBuilder) {
-        console.warn(`Unknown material type: ${obj.material.type}`);
-        return null;
-      }
-
-      const geometry = geometryBuilder(obj);
-      const material = materialBuilder(obj.material);
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-
-      return mesh;
+    buildObjectDefault(obj);
   }
+}
+
+function buildObjectDefault(obj, castShadow = true, receiveShadow = true) {
+  const geometryBuilder = typeMap[obj.type];
+  if (!geometryBuilder) {
+    console.warn(`Unknown object type: ${obj.type}`);
+    return null;
+  }
+
+  const materialBuilder = materialMap[obj.material.type];
+  if (!materialBuilder) {
+    console.warn(`Unknown material type: ${obj.material.type}`);
+    return null;
+  }
+
+  const geometry = geometryBuilder(obj);
+  const material = materialBuilder(obj.material);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = castShadow;
+  mesh.receiveShadow = receiveShadow;
+
+  return mesh;
 }
 
 /**
