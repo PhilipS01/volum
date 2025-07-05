@@ -171,9 +171,14 @@ async function buildObject(obj) {
     const child = await buildObject(obj.object); // recursively build child object
     if (!child) return null;
 
-    if (obj.position) child.position.set(...obj.position);
-    if (obj.rotation) child.rotation.set(...toRadians(obj.rotation));
-    if (obj.scale)    child.scale.set(...obj.scale);
+    if (obj.position) child.position.add(new THREE.Vector3(...obj.position));
+    if (obj.rotation) {
+      const rot = toRadians(obj.rotation); // assumes [x, y, z] in degrees
+      child.rotation.x += rot[0];
+      child.rotation.y += rot[1];
+      child.rotation.z += rot[2];
+    }
+    if (obj.scale) child.scale.multiply(new THREE.Vector3(...obj.scale));
 
     return child;
   }
