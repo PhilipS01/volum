@@ -6,14 +6,14 @@ from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Plane(SceneObject):
     """Represents a plane in 3D space defined by a point and a normal vector."""
-    def __init__(self, width:float , height: float, material: Optional[MeshMaterial]=None):
+    def __init__(self, width:float , height: float, material: Optional[MeshMaterial]=None, **kwargs):
         if material is None:
             material = StandardMaterial()
             
         if not isinstance(material, MeshMaterial):
             raise TypeError(f"Plane expects MeshMaterial, got {type(material)}")
 
-        super().__init__(material)
+        super().__init__(material, **kwargs)
         self.width = width
         self.height = height
 

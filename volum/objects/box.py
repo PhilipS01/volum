@@ -5,14 +5,15 @@ from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Box(SceneObject):
     """Represents a box in 3D space."""
-    def __init__(self, width: float, height: float, depth: float, material: Optional[MeshMaterial]=None):
+    def __init__(self, width: float, height: float, depth: float, material: Optional[MeshMaterial]=None, **kwargs):
         if material is None:
             material = StandardMaterial()
-            
-        if not isinstance(material, MeshMaterial):
-            raise TypeError(f"Box expects MeshMaterial, got {type(material)}")
 
-        super().__init__(material)
+        super().__init__(material, **kwargs)
+        
+        if not isinstance(self.material, MeshMaterial):
+            raise TypeError(f"Box expects MeshMaterial, got {type(self.material)}")
+
         self.width = width
         self.height = height
         self.depth = depth

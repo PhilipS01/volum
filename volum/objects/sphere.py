@@ -6,7 +6,7 @@ from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Sphere(SceneObject):
     """Represents a sphere in 3D space."""
-    def __init__(self, radius, material: Optional[MeshMaterial]=None):
+    def __init__(self, radius, material: Optional[MeshMaterial]=None, **kwargs):
         if material is None:
             material = StandardMaterial()
 
@@ -16,7 +16,7 @@ class Sphere(SceneObject):
         if not isinstance(radius, (int, float)) or radius <= 0:
             raise ValueError("Radius must be a positive number.")
         
-        super().__init__(material)
+        super().__init__(material, **kwargs)
         self.radius = radius
 
     def volume(self):

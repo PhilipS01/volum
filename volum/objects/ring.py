@@ -5,7 +5,7 @@ from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Ring(SceneObject):
     """Represents a ring in 3D space."""
-    def __init__(self, inner_radius: float, outer_radius: float, segments: int = 32, perimeter: float = 2*np.pi, perimeter_start: float = 0, material: Optional[MeshMaterial] = None):
+    def __init__(self, inner_radius: float, outer_radius: float, segments: int = 32, perimeter: float = 2*np.pi, perimeter_start: float = 0, material: Optional[MeshMaterial] = None, **kwargs):
         """Initialize a ring.
 
         Args:
@@ -25,7 +25,7 @@ class Ring(SceneObject):
         if not isinstance(material, MeshMaterial):
             raise TypeError(f"Ring expects MeshMaterial, got {type(material)}")
 
-        super().__init__(material)
+        super().__init__(material, **kwargs)
         self.inner_radius = inner_radius
         self.outer_radius = outer_radius
         self.segments = segments

@@ -5,14 +5,14 @@ from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Capsule(SceneObject):
     """Represents a capsule in 3D space."""
-    def __init__(self, radius: float, height: float, cap_segments: int = 10, radial_segments: int = 20, material: Optional[MeshMaterial] = None):
+    def __init__(self, radius: float, height: float, cap_segments: int = 10, radial_segments: int = 20, material: Optional[MeshMaterial] = None, **kwargs):
         if material is None:
             material = StandardMaterial()
             
         if not isinstance(material, MeshMaterial):
             raise TypeError(f"Box expects MeshMaterial, got {type(material)}")
 
-        super().__init__(material)
+        super().__init__(material, **kwargs)
         self.radius = radius
         self.height = height
         self.cap_segments = cap_segments

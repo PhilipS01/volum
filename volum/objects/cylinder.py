@@ -5,14 +5,14 @@ from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Cylinder(SceneObject):
     """Represents a cylinder object in the scene."""
-    def __init__(self, radius_top: float, radius_bottom: float, height: float, radial_segments: int = 64, material: Optional[MeshMaterial] = None):
+    def __init__(self, radius_top: float, radius_bottom: float, height: float, radial_segments: int = 64, material: Optional[MeshMaterial] = None, **kwargs):
         if material is None:
             material = StandardMaterial()
 
         if not isinstance(material, MeshMaterial):
             raise TypeError(f"Cylinder expects MeshMaterial, got {type(material)}")
 
-        super().__init__(material)
+        super().__init__(material, **kwargs)
         self.radius_top = radius_top
         self.radius_bottom = radius_bottom
         self.height = height

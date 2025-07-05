@@ -5,7 +5,7 @@ from volum.core.materials import StandardMaterial, MeshMaterial
 
 class TorusKnot(SceneObject):
     """Represents a torus knot in 3D space."""
-    def __init__(self, radius: float, tube_radius: float, tubular_segments: int = 64, radial_segments: int = 16, p: int = 2, q: int = 3, material: Optional[MeshMaterial] = None):
+    def __init__(self, radius: float, tube_radius: float, tubular_segments: int = 64, radial_segments: int = 16, p: int = 2, q: int = 3, material: Optional[MeshMaterial] = None, **kwargs):
         """Initialize a torus knot.
 
         Args:
@@ -27,7 +27,7 @@ class TorusKnot(SceneObject):
         if not isinstance(material, MeshMaterial):
             raise TypeError(f"TorusKnot expects MeshMaterial, got {type(material)}")
 
-        super().__init__(material)
+        super().__init__(material, **kwargs)
         self.radius = radius
         self.tube_radius = tube_radius
         self.radial_segments = radial_segments

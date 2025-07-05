@@ -5,14 +5,14 @@ from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Circle(SceneObject):
     """Represents a circle in 3D space."""
-    def __init__(self, radius: float, segments: int = 32, perimeter: float = 2*np.pi, perimeter_start: float = 0, material: Optional[MeshMaterial] = None):
+    def __init__(self, radius: float, segments: int = 32, perimeter: float = 2*np.pi, perimeter_start: float = 0, material: Optional[MeshMaterial] = None, **kwargs):
         if material is None:
             material = StandardMaterial()
             
         if not isinstance(material, MeshMaterial):
             raise TypeError(f"Circle expects MeshMaterial, got {type(material)}")
 
-        super().__init__(material)
+        super().__init__(material, **kwargs)
         self.radius = radius
         self.segments = segments
         self.perimeter = perimeter

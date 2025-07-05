@@ -94,3 +94,6 @@ class Transform(SceneObject):
         local_point = self.inverse_transform_point(point)
         object = self.object
         return object.distance_to(local_point)
+    
+    def __repr__(self):
+        return f"Transform(object={self.object}, position={self.position}, rotation={self.rotation}, scale={self.scale})"

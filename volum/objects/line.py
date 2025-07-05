@@ -5,7 +5,7 @@ from volum.core.materials import LineMaterial, LineBasicMaterial, LineDashedMate
 
 class Line(SceneObject):
     """Represents a polyline in space."""
-    def __init__(self, *pts: Union[List, np.ndarray], material: Optional[LineMaterial]=None):
+    def __init__(self, *pts: Union[List, np.ndarray], material: Optional[LineMaterial]=None, **kwargs):
         if material is None:
             material = LineBasicMaterial()
             
@@ -31,7 +31,7 @@ class Line(SceneObject):
                 raise ValueError("Coordinate arrays are not the same length.")
             points = np.stack(arrays, axis=1)
 
-        super().__init__(material)
+        super().__init__(material, **kwargs)
         self.points = points
 
     def __len__(self):

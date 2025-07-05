@@ -5,7 +5,7 @@ from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Cone(SceneObject):
     """Represents a cone in 3D space."""
-    def __init__(self, radius: float, height: float, segments: int = 32, open_ended: bool = False, perimeter: float = 2*np.pi, perimeter_start: float = 0, material: Optional[MeshMaterial] = None):
+    def __init__(self, radius: float, height: float, segments: int = 32, open_ended: bool = False, perimeter: float = 2*np.pi, perimeter_start: float = 0, material: Optional[MeshMaterial] = None, **kwargs):
         """Initialize a cone.
 
         Args:
@@ -27,7 +27,7 @@ class Cone(SceneObject):
         if not isinstance(material, MeshMaterial):
             raise TypeError(f"Cone expects MeshMaterial, got {type(material)}")
 
-        super().__init__(material)
+        super().__init__(material, **kwargs)
         self.radius = radius
         self.height = height
         self.segments = segments

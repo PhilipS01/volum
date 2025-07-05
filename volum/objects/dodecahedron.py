@@ -5,7 +5,7 @@ from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Dodecahedron(SceneObject):
     """Represents a dodecahedron in 3D space."""
-    def __init__(self, radius: float, material: Optional[MeshMaterial] = None):
+    def __init__(self, radius: float, material: Optional[MeshMaterial] = None, **kwargs):
         """Initialize a dodecahedron.
 
         Args:
@@ -22,7 +22,7 @@ class Dodecahedron(SceneObject):
         if not isinstance(material, MeshMaterial):
             raise TypeError(f"Dodecahedron expects MeshMaterial, got {type(material)}")
 
-        super().__init__(material)
+        super().__init__(material, **kwargs)
         self.radius = radius
 
     def to_dict(self):
