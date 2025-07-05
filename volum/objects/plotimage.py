@@ -10,7 +10,6 @@ class PlotImage(SceneObject):
     def __new__(cls, plot: Optional[figure.Figure] = None, **kwargs):
         # Check if this figure is already in cache, reuse if so
         if plot and plot.number in cls._figure_cache: # type: ignore
-            print("Reusing cached PlotImage")
             return cls._figure_cache[plot.number] # type: ignore
         
         instance = super().__new__(cls)
