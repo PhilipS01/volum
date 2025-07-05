@@ -8,7 +8,7 @@ import { studioEnv, outdoorEnv }from '/static/assets/index.js';
 const canvas = document.getElementById('three-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 const scene    = new THREE.Scene();
-const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 200);
+const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight);
 camera.position.set(0,10,10);
 camera.lookAt(0, 0, 0);
 
@@ -58,6 +58,7 @@ function loadUserEnvironment(url) {
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.dampingFactor = 0.12;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; // optional: for softer shadows
 
