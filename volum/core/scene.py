@@ -60,7 +60,7 @@ class Scene:
             self.materials.register_material(obj_id, obj)
         else:
             obj_id = f"{len(self.objects)}-{uuid.uuid4()}"
-            setattr(obj, 'id', obj_id) # set the id (SceneObject should provide an id attribute)
+            setattr(obj, '_id', obj_id) # set the id (SceneObject should provide an id attribute)
             self.objects[obj_id] = obj
 
     def serialize(self):
@@ -90,7 +90,6 @@ class SceneObject(Serializable):
     _material: Material
 
     def __init__(self, material, id=None, **kwargs):
-        self.id = id
         if isinstance(material, str):
             # If material is a string, assume it's a material name and fetch it from the scene
             scene = kwargs.get('scene', None)
@@ -109,6 +108,8 @@ class SceneObject(Serializable):
             self._material = material
         else:
             self._material = None # type: ignore (for special objects without material, e.g. PointLight)
+
+        self._id = id
 
     @property
     def material(self) -> Material:
@@ -134,6 +135,13 @@ class SceneObject(Serializable):
             self._material.color = value
         else:
             raise ValueError("Cannot set color on an object without a material")
+        
+    @property
+    def id(self) -> str:
+        """Get the unique identifier of the SceneObject."""
+        if self._id is None:
+            raise ValueError("Object ID is not set. Ensure to set 'id' in the constructor or use 'set_id()'.")
+        return self._id
 
     def distance_to(self, point: Union[List[float], np.ndarray, tuple]):
         raise NotImplementedError("SceneObject subclasses must implement a distance() method")
