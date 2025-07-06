@@ -225,7 +225,9 @@ fileEnvHidden.addEventListener('change', (e) => {
 });
 
 const checkboxOrbit =  document.getElementById('checkbox-orbit');
+checkboxOrbit.checked = true; // default to orbit controls
 const checkboxFirstPerson =  document.getElementById('checkbox-firstperson');
+checkboxFirstPerson.checked = false; // default to orbit controls
 
 checkboxOrbit.addEventListener('change', () => {
     if (checkboxOrbit.checked) {
