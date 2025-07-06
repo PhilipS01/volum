@@ -316,7 +316,7 @@ class ImageMaterial(MeshMaterial):
             map = None
             if self.image_path.startswith("http://") or self.image_path.startswith("https://"):
                 warnings.warn(
-                    f"{TerminalColors.WARNING}ImageMaterial image_path is set to {self.image_path}, which is a remote URL. Ensure the image is accessible.{TerminalColors.ENDC}",
+                    f"{TerminalColors.WARNING}ImageMaterial image_path is set to a remote URL. Ensure the image is accessible.{TerminalColors.ENDC}",
                     category=MaterialWarning,
                     stacklevel=2
                 )

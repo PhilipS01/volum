@@ -36,6 +36,6 @@ def create_scene(payload: ScenePayload):
         scene.add_object(obj)
 
         if runtime_config.debug:
-            print(f"{TerminalColors.SUCCESS}Added object{TerminalColors.ENDC} of type {TerminalColors.BOLD}{obj.__class__.__name__}{TerminalColors.ENDC}: {obj.to_dict()}")
+            print(f"{TerminalColors.SUCCESS}Added object{TerminalColors.ENDC} of type {TerminalColors.BOLD}{obj.__class__.__name__}{TerminalColors.ENDC}")
 
     return {"status": "ok", "object_count": len(scene.objects), "plugins": plugins}

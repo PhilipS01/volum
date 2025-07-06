@@ -28,8 +28,8 @@ def build_object_from_dict(obj_dict: Dict[str, Any], registry: ObjectRegistry) -
 
     cls = registry.get_type(obj_type)
     if cls is None:
-        raise ValueError(f"Unknown object type '{obj_type}'")
-    
+        raise ValueError(f"Unknown object type '{obj_type}'. Make sure you installed the corresponding plugin.")
+
     # Handle positional arguments explicitly, if present
     args = []
     if "args" in obj_dict:
