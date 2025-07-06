@@ -29,14 +29,7 @@ def create_scene(payload: ScenePayload):
 
 @router.get("/", summary="Get the current scene as JSON")
 def get_scene():
-    serialized = []
-    for obj in scene.objects.values():
-        d = obj.to_dict()
-        obj_id = getattr(obj, 'id', None)
-        if obj_id:
-            d['id'] = obj_id # expose the id
-        serialized.append(d)
-    return {"objects": serialized}
+    return scene.serialize()
 
 @router.put("/object/{object_id}", summary="Update a single object by ID")
 def update_object(object_id: str, update: SceneObjectPayload):
