@@ -3,169 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/static/style.css">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
 
   <title>Volum Viewer</title>
-  <style>
-    body { margin: 0; overflow: hidden; position: relative; font-family: "Ubuntu", sans-serif; }
-    canvas { display: block; }
-    
-    #ui-overlay {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 100;
-      display: grid;
-      grid-template-columns: 24px 1fr 70px;
-      gap: 8px 12px;
-      background: rgba(138,138,150, 0.7);
-      color: white;
-      border-radius: 8px;
-      padding: 12px;
-    }
-
-    .settings-row {
-      display: contents;
-      line-height: 1.44em;
-    }
-    .settings-row input[type="checkbox"] {
-      grid-column: 1; /* Checkbox in the first column */
-    }
-
-    .settings-row label {
-      grid-column: 2; /* Label in the second column */
-      user-select: none;
-      margin-top: auto;
-      margin-bottom: auto;
-    }
-
-    [data-tooltip] {
-      position: relative;
-      cursor: pointer;
-    }
-
-    [data-tooltip]::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      top: 50%; /* Position above the element */
-      left: calc(100% + 12px);
-      transform: translateY(-50%);
-      background: rgba(0, 0, 0, 1);
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 0.8em;
-      font-style: normal;
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease-in-out;
-      z-index: 101;
-    }
-
-    [data-tooltip]:hover::after {
-      opacity: 1;
-    }
-
-    .settings-row .settings-textbox {
-      grid-column: 3; /* Textbox in the third column */
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-family: "Ubuntu", sans-serif;
-      font-size: 0.86em;
-      background: rgba(255, 255, 255, 0.8);
-      color: #333;
-      transition: background 0.2s ease-in-out;
-      text-align: right;
-      display: none;
-    }
-
-    .settings-row .settings-dropdown {
-      grid-column: 3; /* Dropdown in the third column */
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-family: "Ubuntu", sans-serif;
-      font-size: 0.86em;
-      background: rgba(255, 255, 255, 0.8);
-      color: #333;
-      transition: background 0.2s ease-in-out;
-      text-align: center;
-      display: none;
-    }
-
-    .settings-row .settings-button {
-      grid-column: 3; /* Button in the third column */
-      background: none;
-      color: #333;
-      border: 0;
-      border-radius: 4px;
-      font-family: "Ubuntu", sans-serif;
-      font-size: 0.86em;
-      cursor: pointer;
-      transition: background 0.2s ease-in-out;
-      display: none;
-    }
-
-
-    .settings-row input[type="checkbox"]:checked + label + input.settings-textbox,
-    .settings-row input[type="checkbox"]:checked + label + input.settings-button,
-    .settings-row input[type="checkbox"]:checked + label + select.settings-dropdown {
-      display: inline-block; /* Show the textbox when the checkbox is checked */
-    }
-
-    .heading {
-      grid-column: span 3;
-    }
-
-    .subheading {
-      font-size: 1em;
-      font-weight: 500;
-      margin-top: 14px;
-      margin-bottom: 4px;
-      text-align: left;
-      grid-column: span 3;
-    }
-    
-    /* Font weights and styles */
-    .light {
-      font-weight: 300;
-      font-style: normal;
-    }
-    .regular {
-      font-weight: 400;
-      font-style: normal;
-    }
-    .medium {
-      font-weight: 500;
-      font-style: normal;
-    }
-    .bold {
-      font-weight: 700;
-      font-style: normal;
-    }
-    .light-italic {
-      font-weight: 300;
-      font-style: italic;
-    }
-    .regular-italic {
-      font-weight: 400;
-      font-style: italic;
-    }
-    .medium-italic {
-      font-weight: 500;
-      font-style: italic;
-    }
-    .bold-italic {
-      font-weight: 700;
-      font-style: italic;
-    }
-  </style>
 </head>
 <body>
-  <script type="module" src="/static/live_client.js"></script>
+  <script type="module" src="/static/live_client.js" defer></script>
   <canvas id="three-canvas"></canvas>
   <div id="ui-overlay">
     <span class="bold heading" style="font-size: 1.2em;">Volum Scene Viewer</span>
@@ -192,7 +39,7 @@
       <label for="checkbox-env" data-tooltip="Environment map for the scene. 'generated' ↔︎ Physical- AND StandardMaterials. 'custom' (HDR/EXR) ↔︎ only PhysicalMaterials">Environment</label>
       <select id="select-env" class="settings-dropdown">
         <option value="room">Lights (generated)</option>
-        <option value="studio">Mall</option>
+        <option value="indoor">Indoor</option>
         <option value="outdoor">Outdoor</option>
         <option value="custom">Custom...</option>
       </select>
@@ -208,6 +55,16 @@
       <input type="checkbox" id="checkbox-grid" name="checkbox-grid">
       <label for="checkbox-grid" data-tooltip="Toggle visibility of the grid helper">Grid</label>
       <input type="text" id="tb-grid-size" class="settings-textbox" placeholder="Size">
+    </div>
+  </div>
+  <div id="view-controls">
+    <div class="view-control">
+      <input type="checkbox" id="checkbox-orbit" name="btn-orbitcontrols" checked>
+      <label for="checkbox-orbit" data-tooltip="Toggle orbit controls (left-click drag to rotate, right-click drag to translate, scroll to zoom)">Orbit</label>
+    </div>
+    <div class="view-control">
+      <input type="checkbox" id="checkbox-firstperson" name="btn-firstperson" unchecked>
+      <label for="checkbox-firstperson" data-tooltip="Toggle first-person controls (WASD to move, space to move up, shift to move down)">First Person</label>
     </div>
   </div>
 </body>

@@ -1,7 +1,10 @@
 class UIColors:
     """Class to hold color constants for the UI and materials."""
-    PRIMARY = "#4A90E2"  # Primary color for the UI
-    SECONDARY = "#50E3C2"  # Secondary color for the UI
+    PRIMARY = "#008080"  # Primary color for the UI
+    LIGHT = "#b2d8d8"  # Light color for the UI
+    LIGHTER = "#66b2b2"  # Lighter shade for the UI
+    DARKER = "#006666"  # Darker shade for the UI
+    DARK = "#004c4c" # Dark color for the UI
     ACCENT = "#F5A623"  # Accent color for the UI
     ERROR = "#D0021B"  # Error color for the UI
     WARNING = "#F8E71C"  # Warning color for the UI

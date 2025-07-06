@@ -1,9 +1,10 @@
 import * as THREE               from '/static/three-proxy.js';
+import { PointerLockControls }  from '/static/three-proxy.js';
 import { OrbitControls }        from '/static/three-proxy.js';
 import { loadSceneFromJSON }    from '/static/scene_loader.js';
 import { RoomEnvironment }      from '/static/three-proxy.js';
 import { RGBELoader }           from '/static/three-proxy.js';
-import { studioEnv, outdoorEnv }from '/static/assets/index.js';
+import { indoorEnv, outdoorEnv }from '/static/assets/index.js';
 
 const canvas = document.getElementById('three-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -12,6 +13,16 @@ const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight);
 camera.position.set(0,10,10);
 camera.lookAt(0, 0, 0);
 
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // optional: for softer shadows
+
+let controls = null;
+let orbitControls = null;
+let pointerControls = null;
+
+const move = { forward: false, backward: false, left: false, right: false, up: false, down: false };
+const velocity = new THREE.Vector3();
+const direction = new THREE.Vector3();
 
 function applyEnvironmentMap(tex) {
     scene.environment = tex;
@@ -54,13 +65,6 @@ function loadUserEnvironment(url) {
         applyEnvironmentMap(hdrTexture);
     });
 }
-
-
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.12;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; // optional: for softer shadows
 
 // Set up event listeners for UI controls
 const checkboxLight = document.getElementById('checkbox-light');
@@ -131,7 +135,7 @@ bgColorInput.addEventListener('change', (e) => {
 });
 
 const preset_envs = {
-    'studio': studioEnv,
+    'indoor': indoorEnv,
     'outdoor': outdoorEnv
 };
 
@@ -150,7 +154,7 @@ function setEnvironment(env_value) {
         case 'custom':
             fileEnvHidden.click(); // trigger hidden file input
             return; // reset until file is selected
-        case 'studio':
+        case 'indoor':
         case 'outdoor':
             // Use preset environment
             renderer.useLegacyLights = false;
@@ -160,10 +164,10 @@ function setEnvironment(env_value) {
             break;
         default:
             // Custom HDR/EXR environment
-            loadUserEnvironment(env_value);
             renderer.useLegacyLights = false; // disable legacy lights
             renderer.toneMapping = THREE.ACESFilmicToneMapping; // reset to no tone mapping
             renderer.toneMappingExposure = 1.0;
+            loadUserEnvironment(env_value);
             break;
     }
 }
@@ -220,6 +224,61 @@ fileEnvHidden.addEventListener('change', (e) => {
   }
 });
 
+const checkboxOrbit =  document.getElementById('checkbox-orbit');
+const checkboxFirstPerson =  document.getElementById('checkbox-firstperson');
+
+checkboxOrbit.addEventListener('change', () => {
+    if (checkboxOrbit.checked) {
+        checkboxFirstPerson.checked = false;
+        enableOrbitControls();
+    } else if (!checkboxFirstPerson.checked) {
+        checkboxOrbit.checked = true; // prevent both from being unchecked
+    }
+});
+
+checkboxFirstPerson.addEventListener('change', () => {
+    if (checkboxFirstPerson.checked) {
+        checkboxOrbit.checked = false;
+        enableFirstPersonControls();
+    } else if (!checkboxOrbit.checked) {
+        checkboxFirstPerson.checked = true; // prevent both from being unchecked
+    }
+});
+
+function handleCanvasClick() {
+    if (controls && controls.lock) {
+        controls.lock();
+    }
+}
+
+function enableOrbitControls() {
+    canvas.removeEventListener('click', handleCanvasClick);
+    if (pointerControls) {
+        scene.remove(pointerControls.getObject());
+    }
+
+    orbitControls = new OrbitControls(camera, renderer.domElement);
+    orbitControls.enableDamping = true;
+    orbitControls.dampingFactor = 0.12;
+    controls = orbitControls;
+    console.log('Orbit controls enabled');
+}
+
+function enableFirstPersonControls() {
+    if (orbitControls && orbitControls.dispose) {
+        orbitControls.dispose();
+    }
+
+    pointerControls = new PointerLockControls(camera, renderer.domElement);
+    controls = pointerControls;
+    scene.add(pointerControls.getObject());
+
+    canvas.addEventListener('click', handleCanvasClick);
+
+    setupFirstPersonControls();
+    console.log('First-person controls enabled');
+}
+
 
 // Helper to remove all meshes from scene
 function clearScene() {
@@ -258,6 +317,7 @@ ws.onclose = () => console.warn('Live socket closed');
     toggleAllLightShadows(scene, checkboxShadows.checked); // shadows
     toggleGridHelper(scene, checkboxGrid.checked); // grid helper
     toggleAxesHelper(scene, checkboxAxes.checked); // axes helper
+    enableOrbitControls(); // default controls
 
     onWindowResize();
     window.addEventListener('resize', onWindowResize);
@@ -270,9 +330,35 @@ function onWindowResize() {
     renderer.setSize(innerWidth, innerHeight);
 }
 
+const clock = new THREE.Clock();
+
 function animate() {
     requestAnimationFrame(animate);
-    controls.update();
+
+    if (controls != null && controls instanceof PointerLockControls && controls.isLocked) {
+        const delta = clock.getDelta();
+        velocity.set(0, 0, 0);
+
+        direction.z = Number(move.forward) - Number(move.backward);
+        direction.x = Number(move.right) - Number(move.left);
+        direction.normalize();
+
+        const speed = 700.0;
+        const deltaSpeed = speed * delta;
+
+        velocity.x -= direction.x * deltaSpeed;
+        velocity.z -= direction.z * deltaSpeed;
+
+        if (move.up) velocity.y += deltaSpeed;
+        if (move.down) velocity.y -= deltaSpeed;
+
+        controls.moveRight(-velocity.x * delta);
+        controls.moveForward(-velocity.z * delta);
+        controls.getObject().position.y += velocity.y * delta;
+    } else if (controls != null && controls instanceof OrbitControls) {
+        controls.update(); // for enabled damping
+    }
+
     renderer.render(scene, camera);
 }
 
@@ -350,4 +436,30 @@ function toggleAxesHelper(scene, enabled) {
         scene.add(axesHelper);
     }
     axesHelper.visible = enabled;
+}
+
+function setupFirstPersonControls() {
+    document.addEventListener('keydown', (event) => {
+      switch (event.code) {
+        case 'KeyW': move.forward = true; break;
+        case 'KeyS': move.backward = true; break;
+        case 'KeyA': move.left = true; break;
+        case 'KeyD': move.right = true; break;
+        case 'Space': move.up = true; break;
+        case 'ShiftRight':
+        case 'ShiftLeft': move.down = true; break;
+      }
+    });
+
+    document.addEventListener('keyup', (event) => {
+      switch (event.code) {
+        case 'KeyW': move.forward = false; break;
+        case 'KeyS': move.backward = false; break;
+        case 'KeyA': move.left = false; break;
+        case 'KeyD': move.right = false; break;
+        case 'Space': move.up = false; break;
+        case 'ShiftRight':
+        case 'ShiftLeft': move.down = false; break;
+      }
+    });
 }
