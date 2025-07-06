@@ -1,6 +1,6 @@
 from volum.core.plugin import ScenePlugin
 
-from volum.core.materials import StandardMaterial, BasicMaterial, PhongMaterial, LineBasicMaterial, LineDashedMaterial, PhysicalMaterial, MatcapMaterial, NormalMaterial, ToonMaterial
+from volum.core.materials import StandardMaterial, BasicMaterial, PhongMaterial, LineBasicMaterial, LineDashedMaterial, PhysicalMaterial, MatcapMaterial, NormalMaterial, ToonMaterial, ImageMaterial
 
 class BaseMaterialsPlugin(ScenePlugin):
     """A plugin for adding basic materials to the scene."""
@@ -17,3 +17,4 @@ class BaseMaterialsPlugin(ScenePlugin):
         registry.register_type("MatcapMaterial", MatcapMaterial)
         registry.register_type("NormalMaterial", NormalMaterial)
         registry.register_type("ToonMaterial", ToonMaterial)
+        registry.register_type("ImageMaterial", ImageMaterial)

@@ -132,6 +132,23 @@ const materialMap = {
       wireframe: props.wireframe ?? false,
       side: THREE.DoubleSide
     });
+  },
+
+  ImageMaterial: (props) => {
+    if (!props.map) {
+      console.warn("ImageMaterial requires a map");
+      return new THREE.MeshBasicMaterial({ color: 0xffffff });
+    }
+
+
+    return new THREE.MeshStandardMaterial({
+      map: new THREE.TextureLoader().load(props.map),
+      color: new THREE.Color(props.color ?? 0xffffff),
+      opacity: props.opacity ?? 1,
+      transparent: props.opacity < 1,
+      wireframe: props.wireframe ?? false,
+      side: THREE.DoubleSide
+    });
   }
 };
 
@@ -243,7 +260,6 @@ async function buildObject(obj) {
   }
 
   else if (obj.type === 'PlotImage') {
-    console.log(obj.double_sided, "double_sided");
     const geometryBuilder = typeMap['Plane'];
     if (!geometryBuilder) {
       console.warn(`Unknown plane type: ${obj.type}`);

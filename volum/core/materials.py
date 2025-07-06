@@ -1,4 +1,4 @@
-import warnings
+import warnings, base64, requests
 from volum.config.constants import MaterialColors, TerminalColors
 
 class MaterialWarning(Warning):
@@ -287,3 +287,79 @@ class ToonMaterial(MeshMaterial):
     
     def __repr__(self):
         return f"ToonMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, gradient_map={self.gradient_map}, opacity={self.opacity})"
+    
+class ImageMaterial(MeshMaterial):
+    """Material that uses an image texture."""
+    def __init__(self, image_path: str="https://raw.githubusercontent.com/PhilipS01/volum/90af00489989d70374ed29e45c32f310740daca2/docs/static/volum_banner.png", color="white", wireframe=False, opacity=1.0, **kwargs):
+        """Initialize the ImageMaterial.
+
+        Args:
+            image_path (str, optional): The path to the image file. Defaults to Volum banner.
+            color (str, optional): The color of the material. Defaults to MaterialColors.DEFAULT.
+            wireframe (bool, optional): Whether to render the material as a wireframe. Defaults to False.
+            opacity (float, optional): The opacity of the material. Defaults to 1.0.
+
+        Raises:
+            ValueError: If the image_path is invalid or does not point to a valid file.
+        """
+
+        if image_path is None or not isinstance(image_path, str):
+            raise ValueError(f"{TerminalColors.ERROR}ImageMaterial requires a valid image path, got {image_path}{TerminalColors.ENDC}")
+
+        self.image_path = image_path
+
+        # check if map is in kwargs first (built by volum.core.builder)
+        if kwargs.get('map') is not None and isinstance(kwargs['map'], str):
+            super().__init__(color, wireframe=wireframe, opacity=opacity, **kwargs)
+        else:
+            kwargs.pop('map', None)  # remove map from kwargs if it exists but is not a string
+            map = None
+            if self.image_path.startswith("http://") or self.image_path.startswith("https://"):
+                warnings.warn(
+                    f"{TerminalColors.WARNING}ImageMaterial image_path is set to {self.image_path}, which is a remote URL. Ensure the image is accessible.{TerminalColors.ENDC}",
+                    category=MaterialWarning,
+                    stacklevel=2
+                )
+                # get image data from URL
+                try:
+                    response = requests.get(self.image_path)
+                    response.raise_for_status()  # raise an error for bad responses
+                    img_data = response.content
+                    img_base64 = base64.b64encode(img_data).decode('utf-8')
+                    map = f"data:image/png;base64,{img_base64}"
+                except requests.RequestException as e:
+                    raise ValueError(f"{TerminalColors.ERROR}ImageMaterial failed to fetch image from {self.image_path}: {e}{TerminalColors.ENDC}")
+
+            elif not self.image_path.endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                warnings.warn(
+                    f"{TerminalColors.WARNING}ImageMaterial image_path is set to {self.image_path}, which does not have a recognized image file extension.{TerminalColors.ENDC}",
+                    category=MaterialWarning,
+                    stacklevel=2
+                )
+
+            else:
+                try:
+                    with open(self.image_path, 'rb') as f:
+                        img_data = f.read()
+                        img_base64 = base64.b64encode(img_data).decode('utf-8')
+                        map = f"data:image/png;base64,{img_base64}"
+                except FileNotFoundError:
+                    raise ValueError(f"{TerminalColors.ERROR}ImageMaterial image_path {self.image_path} does not point to a valid file.{TerminalColors.ENDC}")
+
+            if map is not None:
+                super().__init__(color, map=map, wireframe=wireframe, opacity=opacity, **kwargs)
+            
+
+    def to_dict(self):
+        return {
+            "type": "ImageMaterial",
+            "name": self.name if self.name else self.__class__.__name__,
+            "image_path": self.image_path, # stores the original image path
+            "color": self.color,
+            "map": self.map, # stores base64 encoded image data
+            "wireframe": self.wireframe,
+            "opacity": self.opacity
+        }
+    
+    def __repr__(self):
+        return f"ImageMaterial(color={self.color}, map={self.map}, wireframe={self.wireframe}, opacity={self.opacity})"

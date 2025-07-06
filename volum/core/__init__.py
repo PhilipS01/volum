@@ -15,5 +15,8 @@ __all__ = [
     "BasicMaterial",
     "StandardMaterial",
     "LineBasicMaterial",
-    "LineDashedMaterial"
+    "LineDashedMaterial",
+    "PhysicalMaterial",
+    "ImageMaterial",
+    "ToonMaterial"
 ]
