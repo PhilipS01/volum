@@ -10,7 +10,6 @@ from volum.objects import Capsule
 from volum.objects import Cone
 from volum.objects import Circle
 from volum.objects import Ring
-from volum.objects import PlotImage
 from volum.objects import Torus
 from volum.objects import TorusKnot
 
@@ -33,4 +32,3 @@ class BaseShapesPlugin(ScenePlugin):
         registry.register_type("Ring", Ring)
         registry.register_type("Torus", Torus)
         registry.register_type("TorusKnot", TorusKnot)
-        registry.register_type("PlotImage", PlotImage)
