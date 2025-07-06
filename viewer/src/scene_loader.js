@@ -165,7 +165,7 @@ export async function loadSceneFromJSON(sceneJSON, scene) {
  * @returns {Promise<THREE.Object3D|null>} The constructed Three.js object or null if invalid.
  */
 async function buildObject(obj) {
-  if (!obj || typeof obj !== 'object') return null;
+  if (!obj || typeof obj !== 'object' || obj.type.includes("Material")) return null;
 
   if (obj.type === 'Transform') {
     const child = await buildObject(obj.object); // recursively build child object
@@ -251,7 +251,7 @@ async function buildObject(obj) {
     }
 
     const geometry = geometryBuilder(obj);
-    const material = new THREE.MeshBasicMaterial({ map: new THREE.TextureLoader().load(obj.image_data), transparent: true, side: obj.double_sided ? THREE.DoubleSide : THREE.FrontSide });
+    const material = new THREE.MeshStandardMaterial({ map: new THREE.TextureLoader().load(obj.image_data), transparent: true, side: obj.double_sided ? THREE.DoubleSide : THREE.FrontSide });
     return new THREE.Mesh(geometry, material);
   }
 
