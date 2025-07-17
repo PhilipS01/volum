@@ -96,4 +96,4 @@ class Cone(SceneObject):
         return min(dist_lateral, dist_base, dist_apex)
     
     def __repr__(self):
-        return f"Cone(radius={self.radius}, height={self.height}, segments={self.segments}, open_ended={self.open_ended}, perimeter={self.perimeter}, perimeter_start={self.perimeter_start}, material={self.material})"
+        return f"Cone(radius={self.radius}, height={self.height}, radial_segments={self.radial_segments}, open_ended={self.open_ended}, theta_length={self.theta_length}, theta_start={self.theta_start}, material={self.material})"

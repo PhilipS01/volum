@@ -18,6 +18,7 @@ from volum.objects.torus import Torus
 from volum.objects.torusknot import TorusKnot
 
 from volum.objects.plotimage import PlotImage
+from volum.objects.quiver import Quiver
 
 __all__ = [
     "Box",
@@ -37,5 +38,6 @@ __all__ = [
     "Tetrahedron",
     "Torus",
     "TorusKnot",
-    "PlotImage"
+    "PlotImage",
+    "Quiver"
 ]
