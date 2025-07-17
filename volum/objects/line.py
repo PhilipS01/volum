@@ -6,6 +6,13 @@ from volum.core.materials import LineMaterial, LineBasicMaterial, LineDashedMate
 class Line(SceneObject):
     """Represents a polyline in space."""
     def __init__(self, *pts: Union[List, np.ndarray], material: Optional[LineMaterial]=None, **kwargs):
+        """Initialize the Line.
+
+        Args:
+            pts: Points to define the line, can be a list of lists or numpy arrays.
+            material: Material for the line, defaults to LineBasicMaterial.
+        """
+
         if material is None:
             material = LineBasicMaterial()
             
@@ -15,7 +22,7 @@ class Line(SceneObject):
         if len(pts) == 0:
             raise ValueError("At least one argument is required to define points.")
 
-        if len(pts) == 1:
+        elif len(pts) == 1:
             # 2D array
             points = np.asarray(pts[0])
             if points.ndim != 2:
@@ -23,13 +30,16 @@ class Line(SceneObject):
             if not all(len(p) == len(points[0]) for p in points):
                 raise ValueError("All points in the list must have the same dimension.")
             
-        else:
+        elif len(pts) == 2:
             # Multiple arrays (x, y, z, ...)
             arrays = [np.asarray(a) for a in pts]
             lengths = [len(a) for a in arrays]
             if not all(l == lengths[0] for l in lengths):
                 raise ValueError("Coordinate arrays are not the same length.")
             points = np.stack(arrays, axis=1)
+
+        else:
+            raise ValueError("Line expects either a single 2D array or up to three 1D arrays for coordinates.")
 
         super().__init__(material, **kwargs)
         self.points = points
@@ -77,7 +87,7 @@ class Line(SceneObject):
                 closest_point = A + t * AB
                 dist = np.linalg.norm(point - closest_point)
 
-            min_distance = min(min_distance, dist)
+            min_distance = min(min_distance, float(dist))
 
         return min_distance
 

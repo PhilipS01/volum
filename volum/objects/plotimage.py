@@ -9,8 +9,8 @@ class PlotImage(SceneObject):
 
     def __new__(cls, plot: Optional[figure.Figure] = None, **kwargs):
         # Check if this figure is already in cache, reuse if so
-        if plot and plot.number in cls._figure_cache: # type: ignore
-            return cls._figure_cache[plot.number] # type: ignore
+        if plot and plot.number in cls._figure_cache:
+            return cls._figure_cache[plot.number]
         
         instance = super().__new__(cls)
         return instance

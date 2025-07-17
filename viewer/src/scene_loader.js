@@ -271,11 +271,41 @@ async function buildObject(obj) {
     return new THREE.Mesh(geometry, material);
   }
 
+  else if (obj.type === 'Quiver') {
+    const geometryBuilder = typeMap[obj.geometry ? obj.geometry.type : 'Arrow'];
+    if (!geometryBuilder) {
+      console.warn(`Unknown target geometry type for Quiver: ${obj.type}`);
+      return null;
+    }
+
+    const geometry = geometryBuilder(obj);
+    const material = materialMap[obj.material.type] || new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+    // convert positions and vectors to THREE.Vector3
+    const positionArray = obj.position_array.map(p => new THREE.Vector3(...p));
+    const vectorArray = obj.vector_array.map(v => new THREE.Vector3(...v));
+    if (positionArray.length !== vectorArray.length) {
+      console.warn(`Quiver: position_array and vector_array must have the same length, got ${positionArray.length}, ${vectorArray.length}`);
+      return null;
+    }
+    if (positionArray.length === 0 || vectorArray.length === 0) {
+      console.warn(`Quiver: position_array and vector_array must not be empty`);
+      return null;
+    }
+    return buildVectorFieldMeshes(geometry, material, positionArray, vectorArray, obj.max_length ?? 10);
+  }
+
   else {
     return buildObjectDefault(obj);
   }
 }
 
+/** * Builds a Three.js object with default geometry and material.
+ * @param {Object} obj - The JSON object describing the 3D object.
+ * @param {boolean} [castShadow=true] - Whether the object should cast shadows.
+ * @param {boolean} [receiveShadow=true] - Whether the object should receive shadows.
+ * @returns {THREE.Mesh|null} The constructed Three.js mesh or null if invalid.
+ */
 function buildObjectDefault(obj, castShadow = true, receiveShadow = true) {
   const geometryBuilder = typeMap[obj.type];
   if (!geometryBuilder) {
@@ -407,10 +437,119 @@ function buildPyramidGeometry({ base = 1, height = 1 }) {
   return geometry;
 }
 
-function buildPlot2DMesh({ data }) {
-  // For demo: represent plot as flat plane (extend with texture/lines later)
-  const [x, y] = data;
-  const geometry = new THREE.PlaneGeometry(2, 2);
-  const material = new THREE.MeshBasicMaterial({ color: 'cyan', side: THREE.DoubleSide });
-  return new THREE.Mesh(geometry, material);
+/**
+ * Builds a vector field mesh from the given geometry and vector arrays, using instancing.
+ * @param {THREE.BufferGeometry} geometry - The geometry to use for the vector field.
+ * @param {THREE.Material|THREE.Color} mat_or_col - The material or color to use for the vector field.
+ * @param {Array<THREE.Vector3>} position_array - Array of positions where vectors are defined.
+ * @param {Array<THREE.Vector3>} vector_array - Array of vectors corresponding to each position.
+ * @param {number} [max_length=10] - Maximum length of the vectors.
+ * @returns {THREE.InstancedMesh|null} The created instanced mesh or null if there was an error.
+ */
+function buildVectorFieldMeshes(geometry, mat_or_col, position_array, vector_array, max_length = 10) {
+  // center at origin
+  if (geometry instanceof THREE.BufferGeometry) {
+    geometry.center();
+  }
+  else {
+    console.warn(`buildVectorFieldMeshes: geometry is not a BufferGeometry, got ${geometry.constructor.name}`);
+    return null;
+  }
+
+  if (!(mat_or_col instanceof THREE.Material) && !(mat_or_col instanceof THREE.Color)) {
+    console.warn(`buildVectorFieldMeshes: material is not a THREE.Material, got ${mat_or_col.constructor.name}`);
+    return null;
+  }
+
+  if (!Array.isArray(position_array) || !Array.isArray(vector_array)) {
+    console.warn(`buildVectorFieldMeshes: position_array and vector_array must be arrays, got ${typeof position_array}, ${typeof vector_array}`);
+    return null;
+  }
+
+  if (position_array.length !== vector_array.length) {
+    console.warn(`buildVectorFieldMeshes: position_array and vector_array must have the same length, got ${position_array.length}, ${vector_array.length}`);
+    return null;
+  }
+
+  if (vector_array.length === 0 || position_array.length === 0) {
+    console.warn(`buildVectorFieldMeshes: position_array and vector_array must not be empty`);
+    return null;
+  }
+
+  if (vector_array.some(v => !(v instanceof THREE.Vector3))) {
+    console.warn(`buildVectorFieldMeshes: vector_array must contain THREE.Vector3 instances only`);
+    return null;
+  }
+
+  const count = position_array.length;
+  const mesh = new THREE.InstancedMesh(geometry, (mat_or_col instanceof THREE.Material) ? mat_or_col : null, count);
+
+  // clamp vectors
+  for (let v of vector_array) {
+    v.clampLength(0, max_length); // clamp to a maximum length of max_length
+  }
+
+  if (mat_or_col instanceof THREE.Color) {
+    const instanceColors = new Float32Array(count * 3); // RGB colors
+
+    for (let i = 0; i < count; i++) {
+      // calculate the magnitude of the vector at this point
+      const magnitude = vector_array[i].length();
+      // Normalize the magnitude to [0, 1] range
+      const normalizedMagnitude = Math.min(1, magnitude / max_length); // assuming max magnitude of 10 for normalization
+      mat_or_col.setHSL((1 - normalizedMagnitude), 1.0, 0.5);
+      instanceColors.set([mat_or_col.r, mat_or_col.g, mat_or_col.b], i * 3);
+    }
+    mesh.instanceColor = new THREE.InstancedBufferAttribute(instanceColors, 3);
+
+    // Shader
+    const material = new THREE.ShaderMaterial({
+      vertexShader: /* glsl */`
+        attribute vec3 instanceColor;
+        varying vec3 vColor;
+        void main() {
+          vColor = instanceColor;
+
+          // Use instance matrix for position
+          vec4 modelViewPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * modelViewPosition;
+          gl_PointSize = 1.0; // Adjust point size as needed
+        }
+      `,
+      fragmentShader: /* glsl */`
+        varying vec3 vColor;
+        void main() {
+          gl_FragColor = vec4(vColor, 1.0); // Use instanceColor for fragment color
+        }
+      `,
+      transparent: true,
+      vertexColors: true,
+      side: THREE.DoubleSide
+    });
+
+    mesh.material = material;
+  }
+
+  const dummy = new THREE.Object3D();
+  let i = 0;
+  for (let x of x_array) {
+    for (let y of y_array) {
+      for (let z of z_array) {
+        dummy.position.set(x - x_array.length/2, y - y_array.length/2, z - z_array.length/2);
+
+        // Set arrow direction to vector field
+        dummy.lookAt(new THREE.Vector3(x, y, z));
+
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i++, dummy.matrix);
+      }
+    }
+  }
+
+  mesh.instanceMatrix.needsUpdate = true; // for setMatrixAt
+  mesh.instanceColor.needsUpdate = true; // for setColorAt
+  mesh.morphTexture.needsUpdate = true; // for setMorphAt
+
+
+  return mesh;
 }
