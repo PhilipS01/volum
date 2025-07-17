@@ -272,24 +272,34 @@ async function buildObject(obj) {
   }
 
   else if (obj.type === 'Quiver') {
-    const geometryBuilder = typeMap[obj.geometry ? obj.geometry.type : 'Arrow'];
+    console.log(obj.object.radial_segments, "radial segments for quiver object");
+
+    const geometryBuilder = typeMap[obj.object ? obj.object.type : 'Arrow'];
     if (!geometryBuilder) {
-      console.warn(`Unknown target geometry type for Quiver: ${obj.type}`);
+      console.warn(`Unknown target geometry type for Quiver: ${obj.object.type}`);
       return null;
     }
 
-    const geometry = geometryBuilder(obj);
-    const material = materialMap[obj.material.type] || new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const materialBuilder = materialMap[obj.object.material.type];
+    if (!materialBuilder) {
+        console.warn(`Unknown material type: ${obj.material.type}`);
+        return null;
+      }
+
+    
+
+    const geometry = geometryBuilder(obj.object);
+    const material = materialBuilder(obj.object.material);
 
     // convert positions and vectors to THREE.Vector3
-    const positionArray = obj.position_array.map(p => new THREE.Vector3(...p));
-    const vectorArray = obj.vector_array.map(v => new THREE.Vector3(...v));
+    const positionArray = obj.args[0].map(p => new THREE.Vector3(...p));
+    const vectorArray = obj.args[1].map(v => new THREE.Vector3(...v));
     if (positionArray.length !== vectorArray.length) {
-      console.warn(`Quiver: position_array and vector_array must have the same length, got ${positionArray.length}, ${vectorArray.length}`);
+      console.warn(`Quiver: positionArray and vectorArray must have the same length, got ${positionArray.length}, ${vectorArray.length}`);
       return null;
     }
     if (positionArray.length === 0 || vectorArray.length === 0) {
-      console.warn(`Quiver: position_array and vector_array must not be empty`);
+      console.warn(`Quiver: positionArray and vectorArray must not be empty`);
       return null;
     }
     return buildVectorFieldMeshes(geometry, material, positionArray, vectorArray, obj.max_length ?? 10);
@@ -441,12 +451,12 @@ function buildPyramidGeometry({ base = 1, height = 1 }) {
  * Builds a vector field mesh from the given geometry and vector arrays, using instancing.
  * @param {THREE.BufferGeometry} geometry - The geometry to use for the vector field.
  * @param {THREE.Material|THREE.Color} mat_or_col - The material or color to use for the vector field.
- * @param {Array<THREE.Vector3>} position_array - Array of positions where vectors are defined.
- * @param {Array<THREE.Vector3>} vector_array - Array of vectors corresponding to each position.
+ * @param {Array<THREE.Vector3>} positionArray - Array of positions where vectors are defined.
+ * @param {Array<THREE.Vector3>} vectorArray - Array of vectors corresponding to each position.
  * @param {number} [max_length=10] - Maximum length of the vectors.
  * @returns {THREE.InstancedMesh|null} The created instanced mesh or null if there was an error.
  */
-function buildVectorFieldMeshes(geometry, mat_or_col, position_array, vector_array, max_length = 10) {
+function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray, max_length = 10) {
   // center at origin
   if (geometry instanceof THREE.BufferGeometry) {
     geometry.center();
@@ -456,36 +466,36 @@ function buildVectorFieldMeshes(geometry, mat_or_col, position_array, vector_arr
     return null;
   }
 
-  if (!(mat_or_col instanceof THREE.Material) && !(mat_or_col instanceof THREE.Color)) {
+  if (!(mat_or_col instanceof THREE.Material || mat_or_col instanceof THREE.Color)) {
     console.warn(`buildVectorFieldMeshes: material is not a THREE.Material, got ${mat_or_col.constructor.name}`);
     return null;
   }
 
-  if (!Array.isArray(position_array) || !Array.isArray(vector_array)) {
-    console.warn(`buildVectorFieldMeshes: position_array and vector_array must be arrays, got ${typeof position_array}, ${typeof vector_array}`);
+  if (!Array.isArray(positionArray) || !Array.isArray(vectorArray)) {
+    console.warn(`buildVectorFieldMeshes: positionArray and vectorArray must be arrays, got ${typeof positionArray}, ${typeof vectorArray}`);
     return null;
   }
 
-  if (position_array.length !== vector_array.length) {
-    console.warn(`buildVectorFieldMeshes: position_array and vector_array must have the same length, got ${position_array.length}, ${vector_array.length}`);
+  if (positionArray.length !== vectorArray.length) {
+    console.warn(`buildVectorFieldMeshes: positionArray and vectorArray must have the same length, got ${positionArray.length}, ${vectorArray.length}`);
     return null;
   }
 
-  if (vector_array.length === 0 || position_array.length === 0) {
-    console.warn(`buildVectorFieldMeshes: position_array and vector_array must not be empty`);
+  if (vectorArray.length === 0 || positionArray.length === 0) {
+    console.warn(`buildVectorFieldMeshes: positionArray and vectorArray must not be empty`);
     return null;
   }
 
-  if (vector_array.some(v => !(v instanceof THREE.Vector3))) {
-    console.warn(`buildVectorFieldMeshes: vector_array must contain THREE.Vector3 instances only`);
+  if (vectorArray.some(v => !(v instanceof THREE.Vector3))) {
+    console.warn(`buildVectorFieldMeshes: vectorArray must contain THREE.Vector3 instances only`);
     return null;
   }
 
-  const count = position_array.length;
+  const count = positionArray.length;
   const mesh = new THREE.InstancedMesh(geometry, (mat_or_col instanceof THREE.Material) ? mat_or_col : null, count);
 
   // clamp vectors
-  for (let v of vector_array) {
+  for (let v of vectorArray) {
     v.clampLength(0, max_length); // clamp to a maximum length of max_length
   }
 
@@ -494,13 +504,14 @@ function buildVectorFieldMeshes(geometry, mat_or_col, position_array, vector_arr
 
     for (let i = 0; i < count; i++) {
       // calculate the magnitude of the vector at this point
-      const magnitude = vector_array[i].length();
+      const magnitude = vectorArray[i].length();
       // Normalize the magnitude to [0, 1] range
       const normalizedMagnitude = Math.min(1, magnitude / max_length); // assuming max magnitude of 10 for normalization
       mat_or_col.setHSL((1 - normalizedMagnitude), 1.0, 0.5);
       instanceColors.set([mat_or_col.r, mat_or_col.g, mat_or_col.b], i * 3);
     }
-    mesh.instanceColor = new THREE.InstancedBufferAttribute(instanceColors, 3);
+
+    mesh.geometry.setAttribute('instanceColor', new THREE.InstancedBufferAttribute(instanceColors, 3));
 
     // Shader
     const material = new THREE.ShaderMaterial({
@@ -528,27 +539,23 @@ function buildVectorFieldMeshes(geometry, mat_or_col, position_array, vector_arr
     });
 
     mesh.material = material;
+    mesh.geometry.attributes.instanceColor.needsUpdate = true; // for setColorAt
   }
 
   const dummy = new THREE.Object3D();
-  let i = 0;
-  for (let x of x_array) {
-    for (let y of y_array) {
-      for (let z of z_array) {
-        dummy.position.set(x - x_array.length/2, y - y_array.length/2, z - z_array.length/2);
+  for (let i = 0; i < count; i++) {
+    const pos = positionArray[i];
+    const vec = vectorArray[i];
 
-        // Set arrow direction to vector field
-        dummy.lookAt(new THREE.Vector3(x, y, z));
-
-        dummy.updateMatrix();
-        mesh.setMatrixAt(i++, dummy.matrix);
-      }
-    }
+    // Set the position of the instance
+    dummy.position.copy(pos);
+    // Set the rotation to align with the vector direction
+    dummy.lookAt(pos.clone().add(vec));
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
   }
 
   mesh.instanceMatrix.needsUpdate = true; // for setMatrixAt
-  mesh.instanceColor.needsUpdate = true; // for setColorAt
-  mesh.morphTexture.needsUpdate = true; // for setMorphAt
 
 
   return mesh;
