@@ -136,11 +136,10 @@ class Quiver(SceneObject):
         
 
         return {
-            "type": "PlotImage",
-            "object": self.object.to_dict() if isinstance(self.object, SceneObject) else str(self.object),
-            "material": self.material.to_dict() if isinstance(self.material, MeshMaterial) else str(self.material),
+            "type": "Quiver",
+            "object": self.object.to_dict(),
+            "material": self.material.to_dict(),
             "points": self.points.tolist(),
             "vectors": self.vectors.tolist(),
-            "color": self.color,
             "colormap": self.colormap,
         }
