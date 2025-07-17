@@ -5,7 +5,7 @@ from volum.core.materials import StandardMaterial, MeshMaterial
 
 class Cone(SceneObject):
     """Represents a cone in 3D space."""
-    def __init__(self, radius: float, height: float, segments: int = 32, open_ended: bool = False, perimeter: float = 2*np.pi, perimeter_start: float = 0, material: Optional[MeshMaterial] = None, **kwargs):
+    def __init__(self, radius: float, height: float, radial_segments: int = 32, open_ended: bool = False, theta_length: float = 2*np.pi, theta_start: float = 0, material: Optional[MeshMaterial] = None, **kwargs):
         """Initialize a cone.
 
         Args:
@@ -30,10 +30,10 @@ class Cone(SceneObject):
         super().__init__(material, **kwargs)
         self.radius = radius
         self.height = height
-        self.segments = segments
+        self.radial_segments = radial_segments
         self.open_ended = open_ended
-        self.perimeter = perimeter
-        self.perimeter_start = perimeter_start
+        self.theta_length = theta_length
+        self.theta_start = theta_start
         # Precompute some values for distance calculations
         self.slant_height = np.sqrt(radius**2 + height**2)
         self.sin_theta = radius / self.slant_height
@@ -44,10 +44,10 @@ class Cone(SceneObject):
             "type": "Cone",
             "radius": self.radius,
             "height": self.height,
-            "radial_segments": self.segments,
+            "radial_segments": self.radial_segments,
             "open_ended": self.open_ended,
-            "theta_length": self.perimeter,
-            "theta_start": self.perimeter_start,
+            "theta_length": self.theta_length,
+            "theta_start": self.theta_start,
             "material": self.material.to_dict()
         }
     
