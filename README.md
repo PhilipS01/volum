@@ -30,44 +30,43 @@ from volum.core.materials import StandardMaterial, ImageMaterial
 scene = Scene()
 scene.load_plugins([BaseShapesPlugin(), LightsPlugin(), BaseMaterialsPlugin(), PlottingPlugin()])
 
-# From plotting a simple line in 3D,
+# From plotting a simple line in 3D
 line = Line([[0, 0, 0], [0, 2.5, 0], [2, 2.5, -2], [2, 0, -2]])
 scene.add_object(line)
 
-# to 3D quivers with 500.000 object instances (omitted data here for demo).
+# to 3D quivers with 500.000 object instances (omitted data here for demo)
 quiver = Quiver(X, Y, Z, U, V, W, colormap="magnitude", colorscheme="inferno")
 
-# Support for all THREE materials,
+# Support for all THREE materials
 box = Transform(
     object=Box(width=1, height=1, depth=1,material=StandardMaterial(metalness=1, roughness=0)), 
     position=[2, 0, -2],
     rotation=[45, 0, 0],
     scale=[1, 1, 1]
 )
+# and changing properties and nest objects after the fact
+box.color = 'cyan'
+box = box.transform(rotation=[-45, 0, 0])
+scene.add_object(box)
 
-# and even image textures.
+# and even image textures
 image_box = Transform(
     object=Box(width=10, height=3.2, depth=.1, material=ImageMaterial()),
     position=[0, 5, -10]
 )
 scene.add_object(image_box)
 
-# Sprinkle some lighting (and use an environment map, especially with metal materials).
+# Also support for adding objects to the registry via string literals
+scene.add_object("StandardMaterial", name="white_material", color="#fff")
+scene.add_object("Box", width=2, height=1, depth=1, material="white_material")
+
+# Finally sprinkle some lighting (and use an environment map, especially with metal materials)
 light = Transform(
     object=PointLight(intensity=1),
     position=[0, 50, 20],
     rotation=[0, 0, 0]
 )
 scene.add_object(light)
-
-# Support for adding objects to the registry via string literals,
-scene.add_object("StandardMaterial", name="white_material", color="#fff")
-scene.add_object("Box", width=2, height=1, depth=1, material="white_material")
-
-# and changing properties and nest objects after the fact.
-box.color = 'cyan'
-box = box.transform(rotation=[-45, 0, 0])
-scene.add_object(box)
 
 output_path = os.path.join(os.path.dirname(__file__), "test_scene.json")
 scene.save(output_path)
