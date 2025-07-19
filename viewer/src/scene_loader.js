@@ -1,6 +1,6 @@
 import * as THREE from './three-proxy.js';
 import { threetone } from '/static/assets/index.js';
-import { viridis } from './shaders/index.js';
+import { viridis, magma, plasma, inferno } from './shaders/index.js';
 
 
 // Map object types to geometry constructors or custom builders
@@ -520,12 +520,16 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
 
   switch (mat_or_col) {
     case 'viridis':
-      const material = viridis.clone();
-      mesh.material = material;
-      break;
-    case 'plasma':
+      mesh.material = viridis.clone();
       break;
     case 'magma':
+      mesh.material = magma.clone();
+      break;
+    case 'plasma':
+      mesh.material = plasma.clone();
+      break;
+    case 'inferno':
+      mesh.material = inferno.clone();
       break;
   }
 
