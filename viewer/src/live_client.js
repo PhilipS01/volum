@@ -345,7 +345,7 @@ function animate() {
         direction.x = Number(move.right) - Number(move.left);
         direction.normalize();
 
-        const speed = 700.0;
+        const speed = 1000.0;
         const deltaSpeed = speed * delta;
 
         velocity.x -= direction.x * deltaSpeed;

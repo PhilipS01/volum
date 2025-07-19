@@ -1,5 +1,6 @@
 import * as THREE from './three-proxy.js';
 import { threetone } from '/static/assets/index.js';
+import { viridis } from './shaders/index.js';
 
 
 // Map object types to geometry constructors or custom builders
@@ -291,16 +292,7 @@ async function buildObject(obj) {
       material = materialBuilder(obj.object.material);
 
     } else {
-      obj.colorscheme = obj.colorscheme.toLowerCase();
-      if (obj.colorscheme === 'viridis') {
-        material = new THREE.Color(0x440154); // doesnt matter, shader will be applied
-      }
-      else if (obj.colorscheme === 'plasma') {
-        material = new THREE.Color(0xFDE724); // doesnt matter, shader will be applied
-      }
-      else if (obj.colorscheme === 'magma') {
-        material = new THREE.Color(0xB44D9E); // doesnt matter, shader will be applied
-      }
+      material = obj.colorscheme.toLowerCase();
     }
 
     const geometry = geometryBuilder(obj.object);
@@ -482,8 +474,8 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
     return null;
   }
 
-  if (!(mat_or_col instanceof THREE.Material || mat_or_col instanceof THREE.Color)) {
-    console.warn(`buildVectorFieldMeshes: material is not a THREE.Material, got ${mat_or_col.constructor.name}`);
+  if (!(mat_or_col instanceof THREE.Material) && !(typeof mat_or_col === 'string')) {
+    console.warn(`buildVectorFieldMeshes: material is not a THREE.Material or string, got ${mat_or_col.constructor.name}`);
     return null;
   }
 
@@ -513,53 +505,32 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
   const max_vec_len = Math.max(...vectorArray.map(v => v.length()));
   const min_vec_len = Math.min(...vectorArray.map(v => v.length()));
 
-  //// clamp vectors
-  //for (let v of vectorArray) {
-  //  v.clampLength(min_length, max_length); // clamp to a maximum length of max_length
-  //}
+  const instanceValues = new Float32Array(count); // to store normalized vector lengths
 
-  if (mat_or_col instanceof THREE.Color) {
-    const instanceColors = new Float32Array(count * 3); // RGB colors
-
-    for (let i = 0; i < count; i++) {
-      // calculate the magnitude of the vector at this point
-      const magnitude = vectorArray[i].length();
-      // Normalize the magnitude to [0, 1] range
-      const normalizedMagnitude = Math.min(1, magnitude / max_length); // assuming max magnitude of 10 for normalization
-      mat_or_col.setHSL((1 - normalizedMagnitude), 1.0, 0.5);
-      instanceColors.set([mat_or_col.r, mat_or_col.g, mat_or_col.b], i * 3);
-    }
-
-    mesh.geometry.setAttribute('instanceColor', new THREE.InstancedBufferAttribute(instanceColors, 3));
-
-    // Shader
-    const material = new THREE.ShaderMaterial({
-      vertexShader: /* glsl */`
-        attribute vec3 instanceColor;
-        varying vec3 vColor;
-        void main() {
-          vColor = instanceColor;
-
-          // Use instance matrix for position
-          vec4 modelViewPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
-          gl_Position = projectionMatrix * modelViewPosition;
-          gl_PointSize = 1.0; // Adjust point size as needed
-        }
-      `,
-      fragmentShader: /* glsl */`
-        varying vec3 vColor;
-        void main() {
-          gl_FragColor = vec4(vColor, 1.0); // Use instanceColor for fragment color
-        }
-      `,
-      transparent: true,
-      vertexColors: true,
-      side: THREE.DoubleSide
-    });
-
-    mesh.material = material;
-    mesh.geometry.attributes.instanceColor.needsUpdate = true; // for setColorAt
+  for (let i = 0; i < count; i++) {
+    // Normalize the vector length to [0, 1] range with respect to the biggest and smallest vectors
+    const rawLen = vectorArray[i].length();
+    const normalized = (rawLen - min_vec_len) / (max_vec_len - min_vec_len); // [0, 1]
+    // Map the vector length to the desired range (visual length/size)
+    vectorArray[i].setLength(min_length + normalized * (max_length - min_length));
+    // Store the normalized value for coloring
+    instanceValues[i] = normalized;
   }
+  mesh.geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(instanceValues, 1));
+
+  switch (mat_or_col) {
+    case 'viridis':
+      const material = viridis.clone();
+      mesh.material = material;
+      break;
+    case 'plasma':
+      break;
+    case 'magma':
+      break;
+  }
+
+  mesh.geometry.attributes.instanceValue.needsUpdate = true; // for setColorAt
+      
 
   const dummy = new THREE.Object3D();
   for (let i = 0; i < count; i++) {
@@ -573,7 +544,7 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
     // scale the instance based on the vector length and clamp to min_length and max_length
-    const len = Math.max((vec.length()/max_vec_len) * max_length, min_length);
+    const len = vec.length();
     dummy.scale.set(len, len, len);
   }
 
