@@ -7,11 +7,11 @@ Python has long been the go-to language for data scientists and hobbyists to vis
 ## ✨ Features
 - Define 3D scenes programmatically in Python
 - **Scriptable** objects (e.g., dynamic data plots, script runner)
-- Built-in objects like Box, Sphere, Plane, Plot2D, and Plot3D
+- Built-in objects like Box, Sphere, Plane, PlotImage (plt), and Quiver
 - Transform objects (position, rotation, scale) with a clean API
 - Plugin architecture to add new object types or behaviors
-- Scene serialization to JSON for use in a viewer
-- RESTful interface to sync scene state to a browser
+- Scene serialization to JSON (use in viewer or [online editor](https://volumeditor.tech/))
+- RESTful interface to sync scene state
 - JavaScript scene loader takes scenes and builds them in the browser
 - Renders via [Three.js](https://github.com/mrdoob/three.js), with support for more WebGL frameworks coming
 
@@ -23,30 +23,50 @@ Coming soon ...
 
 ```python
 from volum import Scene
-from plugins.base_shapes import BaseShapesPlugin
-from plugins.data_plots import DataPlotsPlugin
-from objects import Box, Plot2D, Transform
+from volum.plugins import BaseShapesPlugin, LightsPlugin, BaseMaterialsPlugin, PlottingPlugin
+from volum.objects import *
+from volum.core.materials import StandardMaterial, ImageMaterial
 
 scene = Scene()
-scene.load_plugins([BaseShapesPlugin(), DataPlotsPlugin()])
+scene.load_plugins([BaseShapesPlugin(), LightsPlugin(), BaseMaterialsPlugin(), PlottingPlugin()])
 
-box = Transform(
-    object=Box(width=1, height=1, depth=1, color='green'),
-    position=[1, 0, 0],
-    rotation=[0, 45, 0]
+# Support for all THREE materials,
+box = Transform(object=Box(width=1, height=1, depth=1, material=StandardMaterial(metalness=1, roughness=0)), position=[2, 0, -2], rotation=[45, 0, 0], scale=[1, 1, 1])
+
+# and even image textures.
+image_box = Transform(
+    object=Box(width=10, height=3.2, depth=.1, material=ImageMaterial()),
+    position=[0, 5, -10],
+    rotation=[0, 0, 0]
 )
+scene.add_object(image_box)
 
-# Rotate a 2D plot to face the camera
-plot = Transform(
-    object=Plot2D(data=[[1,2,3],[3,2,1]]),
-    position=[0, 1, 0],
-    scale=[2, 2, 2]
+# From plotting a simple line in 3D,
+line = Line([[0, 0, 0], [0, 2.5, 0], [2, 2.5, -2], [2, 0, -2]])
+scene.add_object(line)
+
+# to 3D quivers with 500.000 object instances.
+quiver = Quiver(X, Y, Z, U, V, W, colormap="magnitude", colorscheme="inferno")
+
+# Sprinkle some lighting (or alternatively use an environment map, especially with metal materials).
+light = Transform(
+    object=PointLight(intensity=1),
+    position=[0, 50, 20],
+    rotation=[0, 0, 0]
 )
+scene.add_object(light)
 
+# Support for adding objects to the registry via string literals,
+scene.add_object("StandardMaterial", name="white_material", color="#fff")
+scene.add_object("Box", width=2, height=1, depth=1, material="white_material")
+
+# and changing properties and nest objects after the fact.
+box.color = 'cyan'
+box = box.transform(rotation=[-45, 0, 0])
 scene.add_object(box)
-scene.add_object(plot)
 
-print(scene.serialize())  # outputs scene as JSON
+output_path = os.path.join(os.path.dirname(__file__), "test_scene.json")
+scene.save(output_path)
 ```
 
 ## 🔌 Plugin System
@@ -76,8 +96,7 @@ from my_shapes.plugin import PyramidPlugin
 scene = Scene()
 scene.load_plugins([PyramidPlugin()])
 scene.add_object("Pyramid", base=2, height=3, color="gold")
-
-print(scene.serialize())
+scene.save()
 ```
 
 ### Plugin Capabilities:
@@ -93,6 +112,8 @@ Each SceneObject must implement a `to_dict()` method for serialization. Optional
 - `Serializable` – provides `to_dict()`
 - `Scriptable` – supports dynamic Python scripting (e.g., `run_script(code)`)
 
+Even Materials can be registered as SceneObjects (see example above), when adding them directly via string literals.
+
 ## 📁 Project Structure
 ```
 volum/
@@ -100,24 +121,28 @@ volum/
 ├── objects/         # Built-in object definitions
 ├── plugins/         # Core plugins registering objects
 ├── api/             # REST API server
-├── cli/             # CLI entry point
-├── examples/        # Example scenes
+├── config/          # Constants and runtime config
+├── docs/            # Documentation and examples
 ├── tests/           # Tests
 viewer/
 ├── public/          # Static files for viewer
 ├── src/             # Scene loading, WebSockets, Three.js
 ```
 ## 📺 Viewer
-The Python package is designed to pair with a browser-based 3D viewer built using Three.js and Svelte (not included in this repo). You can send scenes to the viewer via the REST API.
+The Python package is designed to pair with a browser-based live viewer. The viewer comes with this repository. All you have to do is launching it via run_live.py and providing either the python script path or the serialized scene.json path.
+1. **python-path** will automatically run the script, extract where the scene.json is saved, and serve the built scene in the browser
+2. **scene-path** will be used to directly provide the viewer with the serialized json, from which the viewer will build the scene
+
+If you make any changes, a **watchdog** will know and re-run the whole thing. No relaoding required.
 
 ## 📚 Documentation
 Coming soon ...
 
 ## 🛠️ Roadmap
 1. Basic Viewer (and perhaps in jupyter notebooks)
-2. Web-based editor UI (Svelte + Three.js)
-3. Plugin marketplace system
-4. Dynamic data sources & animation support
+2. Dynamic data sources & animation support
+3. Web-based editor UI (Svelte + Three.js)
+4. Plugin marketplace system
 5. Desktop version via Electron or Tauri (if the web editor was a success)
 
 _Built with 💜 for devs who think in both code and space._
