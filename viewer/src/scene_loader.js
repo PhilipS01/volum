@@ -280,16 +280,30 @@ async function buildObject(obj) {
       return null;
     }
 
-    const materialBuilder = materialMap[obj.object.material.type];
-    if (!materialBuilder) {
-        console.warn(`Unknown material type: ${obj.material.type}`);
-        return null;
-      }
+    let material;
 
-    
+    if (!obj.colorscheme) {
+      const materialBuilder = materialMap[obj.object.material.type];
+      if (!materialBuilder) {
+          console.warn(`Unknown material type: ${obj.material.type}`);
+          return null;
+      }
+      material = materialBuilder(obj.object.material);
+
+    } else {
+      obj.colorscheme = obj.colorscheme.toLowerCase();
+      if (obj.colorscheme === 'viridis') {
+        material = new THREE.Color(0x440154); // doesnt matter, shader will be applied
+      }
+      else if (obj.colorscheme === 'plasma') {
+        material = new THREE.Color(0xFDE724); // doesnt matter, shader will be applied
+      }
+      else if (obj.colorscheme === 'magma') {
+        material = new THREE.Color(0xB44D9E); // doesnt matter, shader will be applied
+      }
+    }
 
     const geometry = geometryBuilder(obj.object);
-    const material = materialBuilder(obj.object.material);
 
     // convert positions and vectors to THREE.Vector3
     const positionArray = obj.args[0].map(p => new THREE.Vector3(...p));
@@ -302,7 +316,9 @@ async function buildObject(obj) {
       console.warn(`Quiver: positionArray and vectorArray must not be empty`);
       return null;
     }
-    return buildVectorFieldMeshes(geometry, material, positionArray, vectorArray, obj.max_length ?? 10);
+
+    console.assert(material, "Quiver: material must be defined");
+    return buildVectorFieldMeshes(geometry, material, positionArray, vectorArray, obj.min_length ?? 0.1, obj.max_length ?? 1);
   }
 
   else {
@@ -453,10 +469,10 @@ function buildPyramidGeometry({ base = 1, height = 1 }) {
  * @param {THREE.Material|THREE.Color} mat_or_col - The material or color to use for the vector field.
  * @param {Array<THREE.Vector3>} positionArray - Array of positions where vectors are defined.
  * @param {Array<THREE.Vector3>} vectorArray - Array of vectors corresponding to each position.
- * @param {number} [max_length=10] - Maximum length of the vectors.
+ * @param {number} [max_length=1] - Maximum length of the vectors.
  * @returns {THREE.InstancedMesh|null} The created instanced mesh or null if there was an error.
  */
-function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray, max_length = 10) {
+function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray, min_length = 0.1, max_length = 1) {
   // center at origin
   if (geometry instanceof THREE.BufferGeometry) {
     geometry.center();
@@ -494,10 +510,13 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
   const count = positionArray.length;
   const mesh = new THREE.InstancedMesh(geometry, (mat_or_col instanceof THREE.Material) ? mat_or_col : null, count);
 
-  // clamp vectors
-  for (let v of vectorArray) {
-    v.clampLength(0, max_length); // clamp to a maximum length of max_length
-  }
+  const max_vec_len = Math.max(...vectorArray.map(v => v.length()));
+  const min_vec_len = Math.min(...vectorArray.map(v => v.length()));
+
+  //// clamp vectors
+  //for (let v of vectorArray) {
+  //  v.clampLength(min_length, max_length); // clamp to a maximum length of max_length
+  //}
 
   if (mat_or_col instanceof THREE.Color) {
     const instanceColors = new Float32Array(count * 3); // RGB colors
@@ -553,6 +572,9 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
     dummy.lookAt(pos.clone().add(vec));
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
+    // scale the instance based on the vector length and clamp to min_length and max_length
+    const len = Math.max((vec.length()/max_vec_len) * max_length, min_length);
+    dummy.scale.set(len, len, len);
   }
 
   mesh.instanceMatrix.needsUpdate = true; // for setMatrixAt

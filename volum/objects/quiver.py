@@ -9,7 +9,7 @@ class Quiver(SceneObject):
 
     color_schemes = ["viridis", "magma", "plasma", "inferno", "cividis"]
 
-    def __init__(self, *args: Union[np.typing.NDArray[np.float64], List[float]], object: SceneObject = Cone(.1, .3, radial_segments=12), colormap: Optional[str] = None, **kwargs):
+    def __init__(self, *args: Union[np.typing.NDArray[np.float64], List[float]], object: SceneObject = Cone(.1, .3, radial_segments=12), colormap: Optional[str] = None, min_length: float = 1.0, max_length: float = 5.0, **kwargs):
         """Initialize the Quiver.
     
         Args:
@@ -22,14 +22,17 @@ class Quiver(SceneObject):
                 Please keep in mind that the second position parameter is the "height" axis in volum.
                 
                 Also supports meshgrid inputs like X, Y = np.meshgrid(x, y).
-            object: SceneObject to use for the arrow representation.
-            material: Material for the arrow objects. Set it's color attribute to color scheme like 'viridis' or 'magma' if using a colormap.
-            colormap: Determines how colors are mapped to arrows. 
-                Options are 'magnitude' or 'height'.
+            object: SceneObject to use for the arrow representation. (height will be used as the arrow length)
+            colormap: Determines how colors are mapped to arrows. Options are 'magnitude' or 'height'.
+            min_length: Minimum length of the arrows. (will override object's properties)
+            max_length: Maximum length of the arrows. (will override object's properties)
         """
 
         assert isinstance(object, SceneObject), "Object must be a SceneObject"
+        assert hasattr(object, 'height'), "Object must have a height property in order to be used in a Quiver"
         assert colormap in [None, 'magnitude', 'height'], "colormap must be either 'magnitude' or 'height' or None"
+        assert isinstance(min_length, (int, float)) and min_length > 0, "min_length must be a positive number"
+        assert isinstance(max_length, (int, float)) and max_length > 0, "max_length must be a positive number"
 
         # Handle input cases
         if len(args) == 6:  # [X, Y, Z, U, V, W]
@@ -64,15 +67,17 @@ class Quiver(SceneObject):
         # Other attributes
         self._title = kwargs.pop('title', '')
         self._colormap = colormap
-        self._color = kwargs.pop('color', None)
+        self._color_scheme = kwargs.get('colorscheme', None) if kwargs.get('colorscheme', None) in Quiver.color_schemes else None
+        self._min_length = min_length
+        self._max_length = max_length
 
-        super().__init__(material=None, **kwargs)
+        super().__init__(material=None, **kwargs) # No material, since the target object has it's own
 
 
     @property
     def color(self) -> str:
         """Get the color of the quiver arrows."""
-        return self._color
+        return self.object.material.color
     
     @color.setter
     def color(self, value: str):
@@ -86,10 +91,7 @@ class Quiver(SceneObject):
 
         assert isinstance(self.object.material, MeshMaterial), "Quiver target object must have a MeshMaterial"
 
-        if value not in Quiver.color_schemes:
-            self.object.material.color = value
-
-        self._color = value
+        self.object.material.color = value
 
     @property
     def colormap(self) -> Optional[str]:
@@ -122,6 +124,38 @@ class Quiver(SceneObject):
         self._object = value
 
     @property
+    def min_length(self) -> float:
+        """Get the minimum length of the arrows."""
+        return self._min_length
+    
+    @min_length.setter
+    def min_length(self, value: float):
+        """Set the minimum length of the arrows.
+        
+        Args:
+            value (float): Minimum length of the arrows.
+        """
+        if not isinstance(value, (int, float)) or value <= 0:
+            raise ValueError("min_length must be a positive number")
+        self._min_length = value
+
+    @property
+    def max_length(self) -> float:
+        """Get the maximum length of the arrows."""
+        return self._max_length
+    
+    @max_length.setter
+    def max_length(self, value: float):
+        """Set the maximum length of the arrows.
+        
+        Args:
+            value (float): Maximum length of the arrows.
+        """
+        if not isinstance(value, (int, float)) or value <= 0:
+            raise ValueError("max_length must be a positive number")
+        self._max_length = value
+
+    @property
     def title(self) -> str:
         """Get the title of the quiver plot."""
         return self._title
@@ -137,5 +171,7 @@ class Quiver(SceneObject):
             "object": self.object.to_dict(),
             "args": (self.points.tolist(), self.vectors.tolist()),
             "colormap": self.colormap,
-            "colorscheme": self.color if self.color in Quiver.color_schemes else None,
+            "colorscheme": self._color_scheme,
+            "min_length": self._min_length,
+            "max_length": self._max_length
         }

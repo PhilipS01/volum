@@ -14,7 +14,7 @@ def set_main_event_loop(loop):
 def get_main_event_loop():
     return _main_loop
 
-def _safe_json_load(path, retries=5, delay=0.1):
+def _safe_json_load(path, retries=5, delay=1):
     for i in range(retries):
         try:
             if os.path.getsize(path) == 0:
