@@ -11,7 +11,7 @@ Python has long been the go-to language for data scientists and hobbyists to vis
 - Transform objects (position, rotation, scale) with a clean API
 - Plugin architecture to add new object types or behaviors
 - Scene serialization to JSON (use in viewer or [online editor](https://volumeditor.tech/))
-- RESTful interface to sync scene state
+- RESTful interface to sync scene state, update objects, etc.
 - JavaScript scene loader takes scenes and builds them in the browser
 - Renders via [Three.js](https://github.com/mrdoob/three.js), with support for more WebGL frameworks coming
 
