@@ -45,7 +45,7 @@ scene.add_object(image_box)
 line = Line([[0, 0, 0], [0, 2.5, 0], [2, 2.5, -2], [2, 0, -2]])
 scene.add_object(line)
 
-# to 3D quivers with 500.000 object instances.
+# to 3D quivers with 500.000 object instances (unknown data here for demo).
 quiver = Quiver(X, Y, Z, U, V, W, colormap="magnitude", colorscheme="inferno")
 
 # Sprinkle some lighting (or alternatively use an environment map, especially with metal materials).
