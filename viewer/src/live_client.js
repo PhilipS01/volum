@@ -361,6 +361,12 @@ function animate() {
         controls.update(); // for enabled damping
     }
 
+    // scale axes helper based on camera distance
+    let axesHelper = scene.getObjectByName('axesHelper');
+    if (axesHelper) {
+        axesHelper.scale.setScalar(camera.position.length() / 30);
+    }
+
     renderer.render(scene, camera);
 }
 
