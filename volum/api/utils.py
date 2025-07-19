@@ -14,7 +14,7 @@ def set_main_event_loop(loop):
 def get_main_event_loop():
     return _main_loop
 
-def _safe_json_load(path, retries=5, delay=1):
+def _safe_json_load(path, retries=10, delay=0.5):
     for i in range(retries):
         try:
             if os.path.getsize(path) == 0:
@@ -25,7 +25,7 @@ def _safe_json_load(path, retries=5, delay=1):
 
         except (json.JSONDecodeError, ValueError):
             time.sleep(delay)
-    raise RuntimeError(f"Failed to load JSON from {path} after {retries} retries")
+    raise RuntimeError(f"Failed to load JSON from {path} after {retries} retries. Maybe file is still being written because of the size?")
 
 def create_scene_from_path(path: str):
     if path and os.path.isfile(path):

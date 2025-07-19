@@ -273,8 +273,6 @@ async function buildObject(obj) {
   }
 
   else if (obj.type === 'Quiver') {
-    console.log(obj.object.radial_segments, "radial segments for quiver object");
-
     const geometryBuilder = typeMap[obj.object ? obj.object.type : 'Arrow'];
     if (!geometryBuilder) {
       console.warn(`Unknown target geometry type for Quiver: ${obj.object.type}`);
@@ -310,7 +308,7 @@ async function buildObject(obj) {
     }
 
     console.assert(material, "Quiver: material must be defined");
-    return buildVectorFieldMeshes(geometry, material, positionArray, vectorArray, obj.min_length ?? 0.1, obj.max_length ?? 1);
+    return buildVectorFieldMeshes(geometry, material, positionArray, vectorArray, obj.min_length ?? 0.1, obj.max_length ?? 1, obj.colormap ?? 'magnitude');
   }
 
   else {
@@ -464,7 +462,7 @@ function buildPyramidGeometry({ base = 1, height = 1 }) {
  * @param {number} [max_length=1] - Maximum length of the vectors.
  * @returns {THREE.InstancedMesh|null} The created instanced mesh or null if there was an error.
  */
-function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray, min_length = 0.1, max_length = 1) {
+function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray, min_length = 0.1, max_length = 1, colormap = 'magnitude') {
   // center at origin
   if (geometry instanceof THREE.BufferGeometry) {
     geometry.center();
@@ -502,19 +500,52 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
   const count = positionArray.length;
   const mesh = new THREE.InstancedMesh(geometry, (mat_or_col instanceof THREE.Material) ? mat_or_col : null, count);
 
-  const max_vec_len = Math.max(...vectorArray.map(v => v.length()));
-  const min_vec_len = Math.min(...vectorArray.map(v => v.length()));
+  // Benchmarks for normalization and coloring
+  const lengths = vectorArray.map(v => v.length());
+  const max_vec_len = Math.max(...lengths);
+  const min_vec_len = Math.min(...lengths);
+
+  const xs = positionArray.map(p => p.x);
+  const max_x = Math.max(...xs);
+  const min_x = Math.min(...xs);
+  console.log(min_x, max_x, "min and max x values for vector field");
+
+  const ys = positionArray.map(p => p.y);
+  const max_y = Math.max(...ys);
+  const min_y = Math.min(...ys);
+
+  const zs = positionArray.map(p => p.z);
+  const max_z = Math.max(...zs);
+  const min_z = Math.min(...zs);
 
   const instanceValues = new Float32Array(count); // to store normalized vector lengths
 
   for (let i = 0; i < count; i++) {
     // Normalize the vector length to [0, 1] range with respect to the biggest and smallest vectors
-    const rawLen = vectorArray[i].length();
+    const vec = vectorArray[i];
+    const pos = positionArray[i];
+    const rawLen = vec.length();
     const normalized = (rawLen - min_vec_len) / (max_vec_len - min_vec_len); // [0, 1]
     // Map the vector length to the desired range (visual length/size)
-    vectorArray[i].setLength(min_length + normalized * (max_length - min_length));
+    vec.setLength(min_length + normalized * (max_length - min_length));
     // Store the normalized value for coloring
-    instanceValues[i] = normalized;
+    switch (colormap.toLowerCase()) {
+      case 'magnitude':
+        instanceValues[i] = normalized; // use normalized length for colormap
+        break;
+      case 'x':
+        instanceValues[i] = Math.abs((pos.x - min_x) / (max_x - min_x)); // use normalized x component for colormap
+        break;
+      case 'y':
+        instanceValues[i] = Math.abs((pos.y - min_y) / (max_y - min_y)); // use normalized y component for colormap
+        break;
+      case 'z':
+        instanceValues[i] = Math.abs((pos.z - min_z) / (max_z - min_z)); // use normalized z component for colormap
+        break;
+      default:
+        console.warn(`Unknown colormap: ${colormap}, using magnitude`);
+        instanceValues[i] = normalized; // default to magnitude
+    }
   }
   mesh.geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(instanceValues, 1));
 
@@ -531,6 +562,9 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
     case 'inferno':
       mesh.material = inferno.clone();
       break;
+    default:
+      if (mat_or_col instanceof THREE.Material) break;
+      else mesh.material = viridis.clone(); // default to viridis if string is not recognized
   }
 
   mesh.geometry.attributes.instanceValue.needsUpdate = true; // for setColorAt

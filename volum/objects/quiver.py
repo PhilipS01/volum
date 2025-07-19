@@ -8,8 +8,9 @@ class Quiver(SceneObject):
     """Represents a 2D or 3D quiver plot in the 3D scene."""
 
     color_schemes = ["viridis", "magma", "plasma", "inferno", "cividis"]
+    colormaps = ["magnitude", "x", "y", "z"]
 
-    def __init__(self, *args: Union[np.typing.NDArray[np.float64], List[float]], object: SceneObject = Cone(.1, .3, radial_segments=12), colormap: Optional[str] = None, min_length: float = 1.0, max_length: float = 5.0, **kwargs):
+    def __init__(self, *args: Union[np.typing.NDArray[np.float64], List[float]], object: SceneObject = Cone(.1, .3, radial_segments=12), min_length: float = 1.0, max_length: float = 5.0, **kwargs):
         """Initialize the Quiver.
     
         Args:
@@ -30,7 +31,6 @@ class Quiver(SceneObject):
 
         assert isinstance(object, SceneObject), "Object must be a SceneObject"
         assert hasattr(object, 'height'), "Object must have a height property in order to be used in a Quiver"
-        assert colormap in [None, 'magnitude', 'height'], "colormap must be either 'magnitude' or 'height' or None"
         assert isinstance(min_length, (int, float)) and min_length > 0, "min_length must be a positive number"
         assert isinstance(max_length, (int, float)) and max_length > 0, "max_length must be a positive number"
 
@@ -65,8 +65,8 @@ class Quiver(SceneObject):
        
         self._object = object
         # Other attributes
-        self._title = kwargs.pop('title', '')
-        self._colormap = colormap
+        self._title = kwargs.get('title', '')
+        self._colormap = kwargs.get('colormap', None) if kwargs.get('colormap', None) in Quiver.colormaps else None
         self._color_scheme = kwargs.get('colorscheme', None) if kwargs.get('colorscheme', None) in Quiver.color_schemes else None
         self._min_length = min_length
         self._max_length = max_length

@@ -151,3 +151,8 @@ class SceneObject(Serializable):
         from volum.objects.transform import Transform
         return Transform(object=self, position=position, rotation=rotation, scale=scale)
     
+    def flatten(self):
+        """Rotate the object to a flat orientation to compensate for Y-Z-swap."""
+        from volum.objects.transform import Transform
+        return Transform(object=self, rotation=[-90, 0, 0])
+    
