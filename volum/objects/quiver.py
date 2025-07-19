@@ -11,7 +11,7 @@ class Quiver(SceneObject):
     colormaps = ["magnitude", "x", "y", "z"]
 
     def __init__(self, *args: Union[np.typing.NDArray[np.float64], List[float]], object: SceneObject = Cone(.1, .3, radial_segments=12), min_length: float = 1.0, max_length: float = 5.0, **kwargs):
-        """Initialize the Quiver.
+        """Quiver plot constructor with flexible input handling and support for various arrow objects.
     
         Args:
             comps: Arrays representing points and vector components.

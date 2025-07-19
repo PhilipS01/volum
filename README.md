@@ -30,25 +30,29 @@ from volum.core.materials import StandardMaterial, ImageMaterial
 scene = Scene()
 scene.load_plugins([BaseShapesPlugin(), LightsPlugin(), BaseMaterialsPlugin(), PlottingPlugin()])
 
-# Support for all THREE materials,
-box = Transform(object=Box(width=1, height=1, depth=1, material=StandardMaterial(metalness=1, roughness=0)), position=[2, 0, -2], rotation=[45, 0, 0], scale=[1, 1, 1])
-
-# and even image textures.
-image_box = Transform(
-    object=Box(width=10, height=3.2, depth=.1, material=ImageMaterial()),
-    position=[0, 5, -10],
-    rotation=[0, 0, 0]
-)
-scene.add_object(image_box)
-
 # From plotting a simple line in 3D,
 line = Line([[0, 0, 0], [0, 2.5, 0], [2, 2.5, -2], [2, 0, -2]])
 scene.add_object(line)
 
-# to 3D quivers with 500.000 object instances (unknown data here for demo).
+# to 3D quivers with 500.000 object instances (omitted data here for demo).
 quiver = Quiver(X, Y, Z, U, V, W, colormap="magnitude", colorscheme="inferno")
 
-# Sprinkle some lighting (or alternatively use an environment map, especially with metal materials).
+# Support for all THREE materials,
+box = Transform(
+    object=Box(width=1, height=1, depth=1,material=StandardMaterial(metalness=1, roughness=0)), 
+    position=[2, 0, -2],
+    rotation=[45, 0, 0],
+    scale=[1, 1, 1]
+)
+
+# and even image textures.
+image_box = Transform(
+    object=Box(width=10, height=3.2, depth=.1, material=ImageMaterial()),
+    position=[0, 5, -10]
+)
+scene.add_object(image_box)
+
+# Sprinkle some lighting (and use an environment map, especially with metal materials).
 light = Transform(
     object=PointLight(intensity=1),
     position=[0, 50, 20],
@@ -73,7 +77,7 @@ scene.save(output_path)
 The plugin system allows developers to extend Volum by adding new object types, behaviors, or utilities without modifying the core library. Each plugin is a Python class that inherits from the ScenePlugin interface and registers new functionality with the internal object registry.
 
 ### How It Works:
-1. Define a new SceneObject (e.g., a custom geometry or data visualization)
+1. Define a new SceneObject (e.g. a custom geometry or data visualization)
 2. Implement the object class, including a `to_dict()` method
 3. Create a plugin class that inherits from `ScenePlugin`
 4. Register the object inside the plugin's `register()` method
@@ -133,13 +137,13 @@ The Python package is designed to pair with a browser-based live viewer. The vie
 1. **python-path** will automatically run the script, extract where the scene.json is saved, and serve the built scene in the browser
 2. **scene-path** will be used to directly provide the viewer with the serialized json, from which the viewer will build the scene
 
-If you make any changes, a **watchdog** will know and re-run the whole thing. No relaoding required.
+If you make any changes, a **watchdog** will know and re-run the whole thing. No manual reloading required.
 
 ## 📚 Documentation
 Coming soon ...
 
 ## 🛠️ Roadmap
-1. Basic Viewer (and perhaps in jupyter notebooks)
+1. Basic Viewer (and perhaps jupyter notebooks integration)
 2. Dynamic data sources & animation support
 3. Web-based editor UI (Svelte + Three.js)
 4. Plugin marketplace system
