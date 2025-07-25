@@ -10,7 +10,7 @@ const canvas = document.getElementById('three-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 const scene    = new THREE.Scene();
 const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight);
-camera.position.set(0,10,10);
+camera.position.set(0,0,100);
 camera.lookAt(0, 0, 0);
 
 renderer.shadowMap.enabled = true;

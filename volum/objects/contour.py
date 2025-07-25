@@ -4,15 +4,15 @@ from volum.core.scene import SceneObject
 from volum.core.materials import MeshMaterial, StandardMaterial
 from volum.objects.cone import Cone
 
-class Quiver(SceneObject):
-    """Represents a 2D or 3D quiver plot in the 3D scene."""
+class Contour(SceneObject):
+    """Represents a 2D or 3D contour plot in the 3D scene."""
 
     color_schemes = ["viridis", "magma", "plasma", "inferno", "cividis"]
-    colormaps = ["magnitude", "x", "y", "z"]
+    colormaps = ["x", "y", "z"]
 
     def __init__(self, *args: Union[np.typing.NDArray[np.float64], List[float]], object: SceneObject = Cone(.1, .3, radial_segments=12), min_length: float = 1.0, max_length: float = 5.0, **kwargs):
-        """Quiver plot constructor with flexible input handling and support for various arrow objects.
-    
+        """Contour plot constructor with flexible input handling.
+
         Args:
             comps: Arrays representing points and vector components.
                 
@@ -66,8 +66,8 @@ class Quiver(SceneObject):
         self._object = object
         # Other attributes
         self._title = kwargs.get('title', '')
-        self._colormap = kwargs.get('colormap', None) if kwargs.get('colormap', None) in Quiver.colormaps else None
-        self._color_scheme = kwargs.get('colorscheme', None) if kwargs.get('colorscheme', None) in Quiver.color_schemes else None
+        self._colormap = kwargs.get('colormap', None) if kwargs.get('colormap', None) in Contour.colormaps else None
+        self._color_scheme = kwargs.get('colorscheme', None) if kwargs.get('colorscheme', None) in Contour.color_schemes else None
         self._min_length = min_length
         self._max_length = max_length
         self._bounds = self.points.min(axis=0).tolist() + self.points.max(axis=0).tolist()

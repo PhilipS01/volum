@@ -1,6 +1,6 @@
 import * as THREE from './three-proxy.js';
 import { threetone } from '/static/assets/index.js';
-import { viridis, magma, plasma, inferno } from './shaders/index.js';
+import { viridis, magma, plasma, inferno, infernoGPU } from './shaders/index.js';
 
 
 // Map object types to geometry constructors or custom builders
@@ -308,7 +308,8 @@ async function buildObject(obj) {
     }
 
     console.assert(material, "Quiver: material must be defined");
-    return buildVectorFieldMeshes(geometry, material, positionArray, vectorArray, obj.min_length ?? 0.1, obj.max_length ?? 1, obj.colormap ?? 'magnitude');
+    console.log(obj.bounds, "Quiver bounds");
+    return buildVectorFieldMeshes(geometry, material, positionArray, vectorArray, obj.bounds, obj.min_length ?? 0.1, obj.max_length ?? 1, obj.colormap ?? 'magnitude');
   }
 
   else {
@@ -382,14 +383,15 @@ function buildPyramidGeometry({ base = 1, height = 1 }) {
 
 /**
  * Builds a vector field mesh from the given geometry and vector arrays, using instancing.
+ * If the arrays are of larger size, computations will be offloaded to the GPU.
  * @param {THREE.BufferGeometry} geometry - The geometry to use for the vector field.
- * @param {THREE.Material|THREE.Color} mat_or_col - The material or color to use for the vector field.
+ * @param {THREE.Material|string} mat_or_col - The material vector field objects or the string name of a colormap.
  * @param {Array<THREE.Vector3>} positionArray - Array of positions where vectors are defined.
  * @param {Array<THREE.Vector3>} vectorArray - Array of vectors corresponding to each position.
  * @param {number} [max_length=1] - Maximum length of the vectors.
  * @returns {THREE.InstancedMesh|null} The created instanced mesh or null if there was an error.
  */
-function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray, min_length = 0.1, max_length = 1, colormap = 'magnitude') {
+function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray, bounds, min_length = 0.1, max_length = 1, colormap = 'magnitude', animated = false) {
   // center at origin
   if (geometry instanceof THREE.BufferGeometry) {
     geometry.center();
@@ -426,35 +428,52 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
 
   const count = positionArray.length;
   const mesh = new THREE.InstancedMesh(geometry, (mat_or_col instanceof THREE.Material) ? mat_or_col : null, count);
-
   // Benchmarks for normalization and coloring
   const lengths = vectorArray.map(v => v.length());
-  const max_vec_len = Math.max(...lengths);
   const min_vec_len = Math.min(...lengths);
+  const max_vec_len = Math.max(...lengths);
+  
+  if (count > 20000) {
+    console.log(`buildVectorFieldMeshes: count is ${count} offloading to GPU`);
+    buildVectorFieldMeshesGPU(mesh, mat_or_col, positionArray, vectorArray, ...bounds, min_vec_len, max_vec_len, min_length, max_length, colormap, animated);
+  } else {
+    buildVectorFieldMeshesCPU(mesh, mat_or_col, positionArray, vectorArray, ...bounds, min_vec_len, max_vec_len, min_length, max_length, colormap, animated);
+  }
+  return mesh;
+}
 
-  const xs = positionArray.map(p => p.x);
-  const max_x = Math.max(...xs);
-  const min_x = Math.min(...xs);
-  console.log(min_x, max_x, "min and max x values for vector field");
-
-  const ys = positionArray.map(p => p.y);
-  const max_y = Math.max(...ys);
-  const min_y = Math.min(...ys);
-
-  const zs = positionArray.map(p => p.z);
-  const max_z = Math.max(...zs);
-  const min_z = Math.min(...zs);
-
+/**
+ * Builds a vector field mesh using instancing. Position and direction of vectors are calculated on the CPU.
+ * @param {*} mesh - The instanced mesh to build.
+ * @param {THREE.Material|string} mat_or_col - The material or colormap (string) to use for the vector field.
+ * @param {Array<THREE.Vector3>} positionArray - Array of positions where vectors are defined.
+ * @param {Array<THREE.Vector3>} vectorArray - Array of vectors corresponding to each position.
+ * @param {number} min_x - Minimum x coordinate of the bounding box.
+ * @param {number} min_y - Minimum y coordinate of the bounding box.
+ * @param {number} min_z - Minimum z coordinate of the bounding box.
+ * @param {number} max_x - Maximum x coordinate of the bounding box.
+ * @param {number} max_y - Maximum y coordinate of the bounding box.
+ * @param {number} max_z - Maximum z coordinate of the bounding box.
+ * @param {number} min_vec_len - Minimum length of the vectors.
+ * @param {number} max_vec_len - Maximum length of the vectors.
+ * @param {number} min_length - Minimum visual length of the vectors.
+ * @param {number} max_length - Maximum visual length of the vectors.
+ * @param {string} colormap - Colormap to use for coloring the vectors.
+ * @param {boolean} animated - Whether the field will be animated.
+ * @returns 
+ */
+function buildVectorFieldMeshesCPU(mesh, mat_or_col, positionArray, vectorArray, min_x, min_y, min_z, max_x, max_y, max_z, min_vec_len, max_vec_len, min_length = 0.1, max_length = 1, colormap = 'magnitude', animated = false) {
+  const count = positionArray.length;
   const instanceValues = new Float32Array(count); // to store normalized vector lengths
 
   for (let i = 0; i < count; i++) {
     // Normalize the vector length to [0, 1] range with respect to the biggest and smallest vectors
-    const vec = vectorArray[i];
+    const dir = vectorArray[i];
     const pos = positionArray[i];
-    const rawLen = vec.length();
+    const rawLen = dir.length();
     const normalized = (rawLen - min_vec_len) / (max_vec_len - min_vec_len); // [0, 1]
     // Map the vector length to the desired range (visual length/size)
-    vec.setLength(min_length + normalized * (max_length - min_length));
+    dir.setLength(min_length + normalized * (max_length - min_length));
     // Store the normalized value for coloring
     switch (colormap.toLowerCase()) {
       case 'magnitude':
@@ -474,7 +493,15 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
         instanceValues[i] = normalized; // default to magnitude
     }
   }
-  mesh.geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(instanceValues, 1));
+
+  if (animated) {
+    mesh.geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(instanceValues, 1)).setUsage(THREE.DynamicDrawUsage);
+    mesh.geometry.attributes.instanceValue.needsUpdate = true;
+  }
+  else {
+    mesh.geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(instanceValues, 1));
+    
+  }
 
   switch (mat_or_col) {
     case 'viridis':
@@ -494,9 +521,8 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
       else mesh.material = viridis.clone(); // default to viridis if string is not recognized
   }
 
-  mesh.geometry.attributes.instanceValue.needsUpdate = true; // for setColorAt
-      
 
+  // Set the instance matrix for each instance
   const dummy = new THREE.Object3D();
   for (let i = 0; i < count; i++) {
     const pos = positionArray[i];
@@ -513,8 +539,159 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
     dummy.scale.set(len, len, len);
   }
 
-  mesh.instanceMatrix.needsUpdate = true; // for setMatrixAt
-
+  mesh.instanceMatrix.needsUpdate = animated;
 
   return mesh;
+}
+
+/**
+ * Builds a vector field mesh using instancing. Position and direction calculations are offloaded to the shader (GPU).
+ * @param {*} mesh - The instanced mesh to build.
+ * @param {THREE.Material|string} mat_or_col - The material or colormap (string) to use for the vector field.
+ * @param {Array<THREE.Vector3>} positionArray - Array of positions where vectors are defined.
+ * @param {Array<THREE.Vector3>} vectorArray - Array of vectors corresponding to each position.
+ * @param {number} min_x - Minimum x coordinate of the bounding box.
+ * @param {number} min_y - Minimum y coordinate of the bounding box.
+ * @param {number} min_z - Minimum z coordinate of the bounding box.
+ * @param {number} max_x - Maximum x coordinate of the bounding box.
+ * @param {number} max_y - Maximum y coordinate of the bounding box.
+ * @param {number} max_z - Maximum z coordinate of the bounding box.
+ * @param {number} min_vec_len - Minimum length of the vectors.
+ * @param {number} max_vec_len - Maximum length of the vectors.
+ * @param {number} min_length - Minimum visual length of the vectors.
+ * @param {number} max_length - Maximum visual length of the vectors.
+ * @param {string} colormap - Colormap to use for coloring the vectors.
+ * @param {boolean} animated - Whether the field will be animated.
+ * @returns 
+ */
+function buildVectorFieldMeshesGPU(mesh, mat_or_col, positionArray, vectorArray, min_x, min_y, min_z, max_x, max_y, max_z, min_vec_len, max_vec_len, min_length = 0.1, max_length = 1, colormap = 'magnitude', animated = false) {
+  const count = positionArray.length;
+  const instancePos = new Float32Array(count * 3); // to store positions
+  const instanceDir = new Float32Array(count * 3); // to store vector components
+  const instanceValues = new Float32Array(count); // to store normalized vector lengths
+  
+  for (let i = 0; i < count; i++) {
+    // Normalize the vector length to [0, 1] range with respect to the biggest and smallest vectors
+    const dir = vectorArray[i];
+    const pos = positionArray[i];
+    const rawLen = dir.length();
+    const normalized = (rawLen - min_vec_len) / (max_vec_len - min_vec_len); // [0, 1]
+    // Map the vector length to the desired range (visual length/size)
+    dir.setLength(min_length + normalized * (max_length - min_length));
+    // Store the normalized value for coloring
+    switch (colormap.toLowerCase()) {
+      case 'magnitude':
+        instanceValues[i] = normalized; // use normalized length for colormap
+        break;
+      case 'x':
+        instanceValues[i] = Math.abs((pos.x - min_x) / (max_x - min_x)); // use normalized x component for colormap
+        break;
+      case 'y':
+        instanceValues[i] = Math.abs((pos.y - min_y) / (max_y - min_y)); // use normalized y component for colormap
+        break;
+      case 'z':
+        instanceValues[i] = Math.abs((pos.z - min_z) / (max_z - min_z)); // use normalized z component for colormap
+        break;
+      default:
+        console.warn(`Unknown colormap: ${colormap}, using magnitude`);
+        instanceValues[i] = normalized; // default to magnitude
+    }
+  
+    instancePos.set([pos.x, pos.y, pos.z], i * 3);
+    instanceDir.set([dir.x, dir.y, dir.z], i * 3);
+  }
+
+  if (animated) {
+    mesh.geometry.setAttribute('instancePos', new THREE.InstancedBufferAttribute(instancePos, 3)).setUsage(THREE.DynamicDrawUsage);
+    mesh.geometry.setAttribute('instanceDir', new THREE.InstancedBufferAttribute(instanceDir, 3)).setUsage(THREE.DynamicDrawUsage);
+    mesh.geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(instanceValues, 1)).setUsage(THREE.DynamicDrawUsage);
+    mesh.geometry.attributes.instancePos.needsUpdate = true;
+    mesh.geometry.attributes.instanceDir.needsUpdate = true;
+    mesh.geometry.attributes.instanceValue.needsUpdate = true;
+  } else {
+    mesh.geometry.setAttribute('instancePos', new THREE.InstancedBufferAttribute(instancePos, 3));
+    mesh.geometry.setAttribute('instanceDir', new THREE.InstancedBufferAttribute(instanceDir, 3));
+    mesh.geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(instanceValues, 1));
+    mesh.geometry.attributes.instancePos.needsUpdate = false;
+    mesh.geometry.attributes.instanceDir.needsUpdate = false;
+    mesh.geometry.attributes.instanceValue.needsUpdate = false;
+  }
+
+  switch (mat_or_col) {
+    case 'viridis':
+      break;
+    case 'magma':
+      break;
+    case 'plasma':
+      break;
+    case 'inferno':
+      mesh.material = infernoGPU.clone();
+      break;
+    default:
+      if (mat_or_col instanceof THREE.Material) break;
+      else mesh.material = viridis.clone(); // default to viridis if string is not recognized
+  }
+
+  return mesh;
+}
+
+/**
+ * Builds a scalar field mesh, offloading computations to the GPU.
+ */
+function buildScalarFieldMeshGPU(fieldArray, bounds, animated = false) {
+  if (!(fieldArray[0] instanceof THREE.Vector4 || fieldArray[0] instanceof THREE.Vector3)) {
+    console.warn(`buildScalarFieldMeshGPU: fieldArray must contain THREE.Vector4 or THREE.Vector3 instances, got ${fieldArray[0].constructor.name}`);
+    return null;
+  }
+
+  const count = fieldArray.length;
+
+  if (fieldArray[0] instanceof THREE.Vector4) { // 3D scalar field
+    const geometry = new THREE.BufferGeometry();
+    const points = new Float32Array(count * 3);
+    const values = new Float32Array(count * count * count);
+    for (let i = 0; i < count; i++) {
+      const p = fieldArray[i];
+      points.set([p.x, p.y, p.z], i * 3);
+      values[p.x + p.y * width + p.z * width * height] = p.w; // Assuming w is the scalar value
+    }
+
+    if (animated) {
+      geometry.setAttribute('point', new THREE.BufferAttribute(points, 3)).setUsage(THREE.DynamicDrawUsage);
+      geometry.attributes.point.needsUpdate = true;
+    } else {
+      geometry.setAttribute('point', new THREE.BufferAttribute(points, 3));
+    }
+
+    const scalarTex = new THREE.DataTexture3D(values, count, count, count);
+    scalarTex.format = THREE.RedFormat;
+    scalarTex.type = THREE.FloatType;
+    scalarTex.minFilter = scalarTex.magFilter = THREE.LinearFilter;
+    scalarTex.unpackAlignment = 1;
+    scalarTex.needsUpdate = true;
+    
+    const material = infernoGPU(scalarTex, ...bounds);
+    return new THREE.Mesh(geometry, material);
+
+
+  } else { // 2D scalar field
+    const geometry = new THREE.BufferGeometry();
+    const points = new Float32Array(count * 2);
+    const values = new Float32Array(count * count);
+    for (let i = 0; i < count; i++) {
+      const p = fieldArray[i];
+      points.set([p.x, p.y], i * 2);
+      values[p.x + p.y * width] = p.z; // Assuming z is the scalar value
+    }
+
+    if (animated) {
+      geometry.setAttribute('point', new THREE.BufferAttribute(points, 2)).setUsage(THREE.DynamicDrawUsage);
+      geometry.attributes.point.needsUpdate = true;
+    } else {
+      geometry.setAttribute('point', new THREE.BufferAttribute(points, 2));
+    }
+    // TODO: Implement 2D scalar field texture handling
+
+    return null;
+  }
 }
