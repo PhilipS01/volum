@@ -1,4 +1,4 @@
-import { ShaderMaterial, Vector3 } from '/static/three-proxy.js';
+import { ShaderMaterial } from '/static/three-proxy.js';
 
 export const material = new ShaderMaterial({
   vertexShader: `
@@ -6,41 +6,26 @@ export const material = new ShaderMaterial({
     attribute vec3 instanceDir;
     attribute float instanceValue;
 
+    uniform vec3 uBoundsMin;
+    uniform vec3 uBoundsMax;
+
     varying float vInstanceValue;
 
+    mat3 getRotationMatrix(vec3 dir) {
+        vec3 z = normalize(dir);
+        vec3 up = abs(z.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+        vec3 x = normalize(cross(up, z));
+        vec3 y = cross(z, x);
+        return mat3(x, y, z);
+    }
+
     void main() {
-        // Normalize direction
-        vec3 dir = normalize(instanceDir);
+        float len = length(instanceDir);
+        vec3 scaled = position * len;
+        vec3 rotated = getRotationMatrix(instanceDir) * scaled;
+        vec3 worldPos = instancePos + rotated;
 
-        // Scale model geometry along z-axis
-        float lengthScale = length(instanceDir);
-        vec3 scaledPosition = position * vec3(1.0, 1.0, lengthScale);
-
-        // Rotate base geometry to point in dir
-        vec3 up = vec3(0.0, 0.0, 1.0); // assuming base geometry points along z-axis
-        vec3 axis = cross(up, dir);
-        float angle = acos(dot(up, dir));
-
-        mat3 rotation = mat3(1.0); // Identity by default
-
-        if (length(axis) > 0.0001) {
-            axis = normalize(axis);
-            float s = sin(angle);
-            float c = cos(angle);
-            float t = 1.0 - c;
-
-            // Rodrigues rotation formula
-            rotation = mat3(
-                t*axis.x*axis.x + c,     t*axis.x*axis.y - s*axis.z, t*axis.x*axis.z + s*axis.y,
-                t*axis.x*axis.y + s*axis.z, t*axis.y*axis.y + c,     t*axis.y*axis.z - s*axis.x,
-                t*axis.x*axis.z - s*axis.y, t*axis.y*axis.z + s*axis.x, t*axis.z*axis.z + c
-            );
-        }
-
-        vec3 rotated = rotation * scaledPosition;
-        vec4 mvPosition = modelViewMatrix * vec4(instancePos + rotated, 1.0);
-        gl_Position = projectionMatrix * mvPosition;
-
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPos, 1.0);
         vInstanceValue = instanceValue;
     }
   `,
@@ -78,5 +63,5 @@ export const material = new ShaderMaterial({
         gl_FragColor = vec4(color, 1.0);
     }
   `,
-  transparent: true
+  transparent: false
 });

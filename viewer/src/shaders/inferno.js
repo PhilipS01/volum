@@ -48,6 +48,6 @@ export const material = new ShaderMaterial({
             gl_FragColor = vec4(color, 1.0);
         }
     `,
-    transparent: true,
+    transparent: false,
     side: DoubleSide
 });

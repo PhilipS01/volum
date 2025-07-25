@@ -427,14 +427,14 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
   }
 
   const count = positionArray.length;
-  const mesh = new THREE.InstancedMesh(geometry, (mat_or_col instanceof THREE.Material) ? mat_or_col : null, count);
+  const mesh = new THREE.InstancedMesh(geometry.rotateX(Math.PI / 2), (mat_or_col instanceof THREE.Material) ? mat_or_col : null, count);
   // Benchmarks for normalization and coloring
   const lengths = vectorArray.map(v => v.length());
   const min_vec_len = Math.min(...lengths);
   const max_vec_len = Math.max(...lengths);
   
-  if (count > 20000) {
-    console.log(`buildVectorFieldMeshes: count is ${count} offloading to GPU`);
+  if (count > Infinity) {
+    console.log(`buildVectorFieldMeshes: count is ${count}, offloading to GPU`);
     buildVectorFieldMeshesGPU(mesh, mat_or_col, positionArray, vectorArray, ...bounds, min_vec_len, max_vec_len, min_length, max_length, colormap, animated);
   } else {
     buildVectorFieldMeshesCPU(mesh, mat_or_col, positionArray, vectorArray, ...bounds, min_vec_len, max_vec_len, min_length, max_length, colormap, animated);
@@ -527,16 +527,16 @@ function buildVectorFieldMeshesCPU(mesh, mat_or_col, positionArray, vectorArray,
   for (let i = 0; i < count; i++) {
     const pos = positionArray[i];
     const vec = vectorArray[i];
+    const len = vec.length();
+    const target = pos.clone().add(vec);
 
     // Set the position of the instance
     dummy.position.copy(pos);
     // Set the rotation to align with the vector direction
-    dummy.lookAt(pos.clone().add(vec));
+    dummy.lookAt(target);
+    dummy.scale.set(len, len, len);
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
-    // scale the instance based on the vector length and clamp to min_length and max_length
-    const len = vec.length();
-    dummy.scale.set(len, len, len);
   }
 
   mesh.instanceMatrix.needsUpdate = animated;
@@ -632,6 +632,7 @@ function buildVectorFieldMeshesGPU(mesh, mat_or_col, positionArray, vectorArray,
       else mesh.material = viridis.clone(); // default to viridis if string is not recognized
   }
 
+  mesh.frustumCulled = false; // disable frustum culling for shader-side positioning
   return mesh;
 }
 
