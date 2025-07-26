@@ -54,15 +54,34 @@ class Quiver(SceneObject):
             self.vectors = vecs
 
         elif len(args) == 2:  # already stacked arrays (e.g. from builder)
-            self.points, self.vectors = map(np.asarray, args)
-
-            if self.points.shape[1] != 3 or self.vectors.shape[1] != 3:
-                raise ValueError("Input arrays must have shape (3, N) for points and vectors.")
+            shape = kwargs.get('shape', None)
+            if not shape:
+                self.points, self.vectors = map(np.asarray, args)
+            else:
+                self.points = np.asarray(args[0]).reshape(shape)
+                self.vectors = np.asarray(args[1]).reshape(shape)
             
         else:
             raise ValueError("Invalid input. Expected [X, Y, Z, U, V, W] or [[X, Y, Z], [U, V, W]].")
+        
+        if self.points.shape[1] > 3 or self.vectors.shape[1] > 3:
+                raise ValueError("Input arrays must have shape (N, 3) or (N, 2) for points and vectors.")
 
-       
+        if self.points.shape[0] != self.vectors.shape[0] or self.points.shape[1] != self.vectors.shape[1]:
+            raise ValueError("Points and vectors must have the same number of elements.")
+        
+        if self.points.shape[1] < 3:
+            # fill missing dimensions with zeros
+            self.points = np.pad(self.points, ((0, 0), (0, 3 - self.points.shape[1])), mode='constant', constant_values=0)
+        elif self.points.shape[1] > 3:
+            self.points = self.points[:, :3]
+        
+        if self.vectors.shape[1] < 3:
+            # fill missing dimensions with zeros
+            self.vectors = np.pad(self.vectors, ((0, 0), (0, 3 - self.vectors.shape[1])), mode='constant', constant_values=0)
+        elif self.vectors.shape[1] > 3:
+            self.vectors = self.vectors[:, :3]
+
         self._object = object
         # Other attributes
         self._title = kwargs.get('title', '')
@@ -170,10 +189,11 @@ class Quiver(SceneObject):
         return {
             "type": "Quiver",
             "object": self.object.to_dict(),
-            "args": (self.points.tolist(), self.vectors.tolist()),
+            "args": (self.points.flatten().tolist(), self.vectors.flatten().tolist()),
             "colormap": self.colormap,
             "colorscheme": self._color_scheme,
             "min_length": self._min_length,
             "max_length": self._max_length,
-            "bounds": self._bounds
+            "bounds": self._bounds,
+            "shape": (self.points.shape[0], self.points.shape[1])
         }

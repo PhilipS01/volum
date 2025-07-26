@@ -295,9 +295,25 @@ async function buildObject(obj) {
 
     const geometry = geometryBuilder(obj.object);
 
-    // convert positions and vectors to THREE.Vector3
-    const positionArray = obj.args[0].map(p => new THREE.Vector3(...p));
-    const vectorArray = obj.args[1].map(v => new THREE.Vector3(...v));
+    // reconstruct points using shape and convert positions and vectors to THREE.Vector3
+    const shape = obj.shape ? obj.shape : [obj.object.points.length, 3];
+    if (!Array.isArray(shape) || shape.length !== 2 || shape[0] <= 0 || shape[1] <= 0) {
+      console.warn(`Quiver: Invalid shape: ${shape}`);
+      return null;
+    }
+
+    const originalPos = obj.args[0];
+    const originalVec = obj.args[1];
+
+    // reconstruct position and vector arrays
+    const positionArray = [];
+    const vectorArray = [];
+
+    for (let i=0; i < originalPos.length; i+=3) {
+      positionArray.push(new THREE.Vector3(originalPos[i], originalPos[i+1], originalPos[i+2]));
+      vectorArray.push(new THREE.Vector3(originalVec[i], originalVec[i+1], originalVec[i+2]));
+    }
+
     if (positionArray.length !== vectorArray.length) {
       console.warn(`Quiver: positionArray and vectorArray must have the same length, got ${positionArray.length}, ${vectorArray.length}`);
       return null;
@@ -433,12 +449,7 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
   const min_vec_len = Math.min(...lengths);
   const max_vec_len = Math.max(...lengths);
   
-  if (count > Infinity) {
-    console.log(`buildVectorFieldMeshes: count is ${count}, offloading to GPU`);
-    buildVectorFieldMeshesGPU(mesh, mat_or_col, positionArray, vectorArray, ...bounds, min_vec_len, max_vec_len, min_length, max_length, colormap, animated);
-  } else {
-    buildVectorFieldMeshesCPU(mesh, mat_or_col, positionArray, vectorArray, ...bounds, min_vec_len, max_vec_len, min_length, max_length, colormap, animated);
-  }
+  buildVectorFieldMeshesCPU(mesh, mat_or_col, positionArray, vectorArray, ...bounds, min_vec_len, max_vec_len, min_length, max_length, colormap, animated);
   return mesh;
 }
 
@@ -541,98 +552,6 @@ function buildVectorFieldMeshesCPU(mesh, mat_or_col, positionArray, vectorArray,
 
   mesh.instanceMatrix.needsUpdate = animated;
 
-  return mesh;
-}
-
-/**
- * Builds a vector field mesh using instancing. Position and direction calculations are offloaded to the shader (GPU).
- * @param {*} mesh - The instanced mesh to build.
- * @param {THREE.Material|string} mat_or_col - The material or colormap (string) to use for the vector field.
- * @param {Array<THREE.Vector3>} positionArray - Array of positions where vectors are defined.
- * @param {Array<THREE.Vector3>} vectorArray - Array of vectors corresponding to each position.
- * @param {number} min_x - Minimum x coordinate of the bounding box.
- * @param {number} min_y - Minimum y coordinate of the bounding box.
- * @param {number} min_z - Minimum z coordinate of the bounding box.
- * @param {number} max_x - Maximum x coordinate of the bounding box.
- * @param {number} max_y - Maximum y coordinate of the bounding box.
- * @param {number} max_z - Maximum z coordinate of the bounding box.
- * @param {number} min_vec_len - Minimum length of the vectors.
- * @param {number} max_vec_len - Maximum length of the vectors.
- * @param {number} min_length - Minimum visual length of the vectors.
- * @param {number} max_length - Maximum visual length of the vectors.
- * @param {string} colormap - Colormap to use for coloring the vectors.
- * @param {boolean} animated - Whether the field will be animated.
- * @returns 
- */
-function buildVectorFieldMeshesGPU(mesh, mat_or_col, positionArray, vectorArray, min_x, min_y, min_z, max_x, max_y, max_z, min_vec_len, max_vec_len, min_length = 0.1, max_length = 1, colormap = 'magnitude', animated = false) {
-  const count = positionArray.length;
-  const instancePos = new Float32Array(count * 3); // to store positions
-  const instanceDir = new Float32Array(count * 3); // to store vector components
-  const instanceValues = new Float32Array(count); // to store normalized vector lengths
-  
-  for (let i = 0; i < count; i++) {
-    // Normalize the vector length to [0, 1] range with respect to the biggest and smallest vectors
-    const dir = vectorArray[i];
-    const pos = positionArray[i];
-    const rawLen = dir.length();
-    const normalized = (rawLen - min_vec_len) / (max_vec_len - min_vec_len); // [0, 1]
-    // Map the vector length to the desired range (visual length/size)
-    dir.setLength(min_length + normalized * (max_length - min_length));
-    // Store the normalized value for coloring
-    switch (colormap.toLowerCase()) {
-      case 'magnitude':
-        instanceValues[i] = normalized; // use normalized length for colormap
-        break;
-      case 'x':
-        instanceValues[i] = Math.abs((pos.x - min_x) / (max_x - min_x)); // use normalized x component for colormap
-        break;
-      case 'y':
-        instanceValues[i] = Math.abs((pos.y - min_y) / (max_y - min_y)); // use normalized y component for colormap
-        break;
-      case 'z':
-        instanceValues[i] = Math.abs((pos.z - min_z) / (max_z - min_z)); // use normalized z component for colormap
-        break;
-      default:
-        console.warn(`Unknown colormap: ${colormap}, using magnitude`);
-        instanceValues[i] = normalized; // default to magnitude
-    }
-  
-    instancePos.set([pos.x, pos.y, pos.z], i * 3);
-    instanceDir.set([dir.x, dir.y, dir.z], i * 3);
-  }
-
-  if (animated) {
-    mesh.geometry.setAttribute('instancePos', new THREE.InstancedBufferAttribute(instancePos, 3)).setUsage(THREE.DynamicDrawUsage);
-    mesh.geometry.setAttribute('instanceDir', new THREE.InstancedBufferAttribute(instanceDir, 3)).setUsage(THREE.DynamicDrawUsage);
-    mesh.geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(instanceValues, 1)).setUsage(THREE.DynamicDrawUsage);
-    mesh.geometry.attributes.instancePos.needsUpdate = true;
-    mesh.geometry.attributes.instanceDir.needsUpdate = true;
-    mesh.geometry.attributes.instanceValue.needsUpdate = true;
-  } else {
-    mesh.geometry.setAttribute('instancePos', new THREE.InstancedBufferAttribute(instancePos, 3));
-    mesh.geometry.setAttribute('instanceDir', new THREE.InstancedBufferAttribute(instanceDir, 3));
-    mesh.geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(instanceValues, 1));
-    mesh.geometry.attributes.instancePos.needsUpdate = false;
-    mesh.geometry.attributes.instanceDir.needsUpdate = false;
-    mesh.geometry.attributes.instanceValue.needsUpdate = false;
-  }
-
-  switch (mat_or_col) {
-    case 'viridis':
-      break;
-    case 'magma':
-      break;
-    case 'plasma':
-      break;
-    case 'inferno':
-      mesh.material = infernoGPU.clone();
-      break;
-    default:
-      if (mat_or_col instanceof THREE.Material) break;
-      else mesh.material = viridis.clone(); // default to viridis if string is not recognized
-  }
-
-  mesh.frustumCulled = false; // disable frustum culling for shader-side positioning
   return mesh;
 }
 
