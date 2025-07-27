@@ -14,11 +14,11 @@ class Quiver(SceneObject):
         """Quiver plot constructor with flexible input handling and support for various arrow objects.
     
         Args:
-            comps: Arrays representing points and vector components.
-                
-                Can be [X, Y, Z, U, V, W] or [X, Y, Z], [U, V, W].
-                
-                X, Y, Z, U, V, W can be arrays of floats.
+            args: Point and vector component arrays.
+
+                Can be 4 to 6 separate arrays, i.e. {X, Y, Z, U, V, W} or {X, Y, U, V}
+
+                or one array for points and vectors respectively {[X, Y, Z], [U, V, W]}.
 
                 Please keep in mind that the second position parameter is the "height" axis in volum.
                 
@@ -29,10 +29,18 @@ class Quiver(SceneObject):
             max_length: Maximum length of the arrows. (will override object's properties)
         """
 
-        assert isinstance(object, SceneObject), "Object must be a SceneObject"
-        assert hasattr(object, 'height'), "Object must have a height property in order to be used in a Quiver"
-        assert isinstance(min_length, (int, float)) and min_length > 0, "min_length must be a positive number"
-        assert isinstance(max_length, (int, float)) and max_length > 0, "max_length must be a positive number"
+        if not isinstance(object, SceneObject):
+            raise ValueError("Object must be a SceneObject")
+        if not hasattr(object, 'height'):
+            raise ValueError("Object must have a height property in order to be used in a Quiver")
+        if not isinstance(min_length, (int, float)) or min_length <= 0:
+            raise ValueError("min_length must be a positive number")
+        if not isinstance(max_length, (int, float)) or max_length <= 0:
+            raise ValueError("max_length must be a positive number")
+        if min_length > max_length:
+            raise ValueError("min_length must be less than or equal to max_length")
+
+        assert args, "At least one argument is required for Quiver"
 
         # Handle input cases
         if len(args) == 6:  # [X, Y, Z, U, V, W]
@@ -53,11 +61,11 @@ class Quiver(SceneObject):
             self.points = pts
             self.vectors = vecs
 
-        elif len(args) == 2:  # already stacked arrays (e.g. from builder)
+        elif len(args) == 2:
             shape = kwargs.get('shape', None)
             if not shape:
-                self.points, self.vectors = map(np.asarray, args)
-            else:
+                self.points, self.vectors = map(np.asarray, args) # already stacked arrays (e.g. from builder)
+            else: # already serialized arrays
                 self.points = np.asarray(args[0]).reshape(shape)
                 self.vectors = np.asarray(args[1]).reshape(shape)
             
@@ -70,16 +78,16 @@ class Quiver(SceneObject):
         if self.points.shape[0] != self.vectors.shape[0] or self.points.shape[1] != self.vectors.shape[1]:
             raise ValueError("Points and vectors must have the same number of elements.")
         
-        if self.points.shape[1] < 3:
+        if isinstance(self.points, np.ndarray) and self.points.shape[1] < 3:
             # fill missing dimensions with zeros
             self.points = np.pad(self.points, ((0, 0), (0, 3 - self.points.shape[1])), mode='constant', constant_values=0)
-        elif self.points.shape[1] > 3:
+        elif isinstance(self.points, np.ndarray) and self.points.shape[1] > 3:
             self.points = self.points[:, :3]
         
-        if self.vectors.shape[1] < 3:
+        if isinstance(self.vectors, np.ndarray) and self.vectors.shape[1] < 3:
             # fill missing dimensions with zeros
             self.vectors = np.pad(self.vectors, ((0, 0), (0, 3 - self.vectors.shape[1])), mode='constant', constant_values=0)
-        elif self.vectors.shape[1] > 3:
+        elif isinstance(self.vectors, np.ndarray) and self.vectors.shape[1] > 3:
             self.vectors = self.vectors[:, :3]
 
         self._object = object
@@ -97,6 +105,7 @@ class Quiver(SceneObject):
     @property
     def color(self) -> str:
         """Get the color of the quiver arrows."""
+        assert self.object.material, "Quiver target object must have a MeshMaterial to get color"
         return self.object.material.color
     
     @color.setter
@@ -109,7 +118,7 @@ class Quiver(SceneObject):
         if not isinstance(value, str):
             raise TypeError("color must be a string")
 
-        assert isinstance(self.object.material, MeshMaterial), "Quiver target object must have a MeshMaterial"
+        assert isinstance(self.object.material, MeshMaterial), "Quiver target object must have a MeshMaterial to set color"
 
         self.object.material.color = value
 

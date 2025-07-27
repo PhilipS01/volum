@@ -19,7 +19,7 @@ def create_scene(payload: ScenePayload):
     Returns:
         dict: A dictionary containing the status and object count.
     """
-
+    
     plugins = []
     for plugin_name in payload.plugins:
         plugin_cls = PLUGIN_MAP.get(plugin_name, None)

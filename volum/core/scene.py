@@ -124,9 +124,10 @@ class SceneObject(Serializable):
         self._material = value
 
     @property
-    def color(self) -> Union[str, None]:
+    def color(self) -> str:
         """Get the color of the object's material."""
-        return self._material.color if self._material else None
+        assert self._material, "Object must have a material to get color"
+        return self._material.color
     
     @color.setter
     def color(self, value: str):
