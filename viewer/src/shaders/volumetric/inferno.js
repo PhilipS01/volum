@@ -7,24 +7,34 @@ export const material = (scalarTex, min_x, min_y, min_z, max_x, max_y, max_z) =>
     uBoundsMax: { value: new Vector3(max_x, max_y, max_z) }
   },
   vertexShader: `
-    attribute vec3 point;
-    attribute float instanceValue;
-    varying float vValue;
+    precision highp float;
+
+    in vec3 position;
+    in vec3 instancePosition;
 
     uniform sampler3D uScalarField;
     uniform vec3 uBoundsMin;
     uniform vec3 uBoundsMax;
 
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+    uniform mat4 instanceMatrix;
+
+    out float vValue;
+
     void main() {
-      vec3 normalizedPos = (position - uBoundsMin) / (uBoundsMax - uBoundsMin);
+      vec3 worldPos = (instanceMatrix * vec4(position, 1.0)).xyz + instancePosition;
+      vec3 normalizedPos = (worldPos - uBoundsMin) / (uBoundsMax - uBoundsMin);
       vValue = texture(uScalarField, normalizedPos).r;
 
-      vec4 modelViewPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
-      gl_Position = projectionMatrix * modelViewPosition;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `,
   fragmentShader: `
-    varying float vValue;
+    precision highp float;
+
+    in float vValue;
+    out vec4 outColor;
 
     vec3 inferno(float x) {
       const vec3 c0 = vec3(0.001, 0.000, 0.014);
@@ -53,8 +63,7 @@ export const material = (scalarTex, min_x, min_y, min_z, max_x, max_y, max_z) =>
     }
 
     void main() {
-      vec3 color = inferno(vValue);
-      gl_FragColor = vec4(color, 1.0);
+      outColor = vec4(inferno(vValue), 1.0);
     }
   `,
   transparent: true

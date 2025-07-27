@@ -7,7 +7,7 @@ import { RGBELoader }           from '/static/three-proxy.js';
 import { indoorEnv, outdoorEnv }from '/static/assets/index.js';
 
 const canvas = document.getElementById('three-canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, context: canvas.getContext('webgl2') });
 const scene    = new THREE.Scene();
 const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight);
 camera.position.set(0,0,100);

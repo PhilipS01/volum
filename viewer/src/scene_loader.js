@@ -1,6 +1,6 @@
 import * as THREE from './three-proxy.js';
 import { threetone } from '/static/assets/index.js';
-import { viridis, magma, plasma, inferno, infernoGPU } from './shaders/index.js';
+import { viridis, magma, plasma, inferno, inferno_volumetric } from './shaders/index.js';
 
 
 // Map object types to geometry constructors or custom builders
@@ -296,7 +296,7 @@ async function buildObject(obj) {
     const geometry = geometryBuilder(obj.object);
 
     // reconstruct points using shape and convert positions and vectors to THREE.Vector3
-    const shape = obj.shape ? obj.shape : [obj.object.points.length, 3];
+    const shape = obj.shape ? obj.shape : [obj.args[0].length, 3];
     if (!Array.isArray(shape) || shape.length !== 2 || shape[0] <= 0 || shape[1] <= 0) {
       console.warn(`Quiver: Invalid shape: ${shape}`);
       return null;
@@ -324,8 +324,49 @@ async function buildObject(obj) {
     }
 
     console.assert(material, "Quiver: material must be defined");
+
+    return buildVectorFieldMesh(geometry, material, positionArray, vectorArray, obj.bounds, obj.min_length ?? 0.1, obj.max_length ?? 1, obj.colormap ?? 'magnitude');
+  }
+
+  else if (obj.type === 'Contour') {
+    let mat_or_col;
+    
+    if (!obj.colorscheme) {
+      const materialBuilder = materialMap[obj.material.type];
+      if (!materialBuilder) {
+          console.warn(`Unknown material type: ${obj.material.type}`);
+          return null;
+      }
+      mat_or_col = materialBuilder(obj.material);
+
+    } else {
+      mat_or_col = obj.colorscheme.toLowerCase();
+    }
+
+
+    // reconstruct points using shape and convert positions and vectors to THREE.Vector3
+    const shape = obj.shape ? obj.shape : [(obj.args[0].length) ** (1/3), (obj.args[0].length) ** (1/3), (obj.args[0].length) ** (1/3)];
+    if (!Array.isArray(shape) || shape.length !== 3 || shape[0] <= 0 || shape[1] <= 0 || shape[2] <= 0) {
+      console.warn(`Quiver: Invalid shape: ${shape}`);
+      return null;
+    }
+
+    const positionArray = obj.args[0]
+    const valueArray = obj.args[1];
+
+    //if (positionArray.length !== valueArray.length) {
+    //  console.warn(`Quiver: positionArray and valueArray must have the same length, got ${positionArray.length}, ${valueArray.length}`);
+    //  return null;
+    //}
+    if (positionArray.length === 0 || valueArray.length === 0) {
+      console.warn(`Quiver: positionArray and valueArray must not be empty`);
+      return null;
+    }
+
+    console.assert(mat_or_col, "Quiver: material must be defined");
+
     console.log(obj.bounds, "Quiver bounds");
-    return buildVectorFieldMeshes(geometry, material, positionArray, vectorArray, obj.bounds, obj.min_length ?? 0.1, obj.max_length ?? 1, obj.colormap ?? 'magnitude');
+    return buildScalarFieldMesh(mat_or_col, positionArray, valueArray, obj.bounds, obj.colormap ?? 'magnitude', obj.shape);
   }
 
   else {
@@ -407,49 +448,48 @@ function buildPyramidGeometry({ base = 1, height = 1 }) {
  * @param {number} [max_length=1] - Maximum length of the vectors.
  * @returns {THREE.InstancedMesh|null} The created instanced mesh or null if there was an error.
  */
-function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray, bounds, min_length = 0.1, max_length = 1, colormap = 'magnitude', animated = false) {
+function buildVectorFieldMesh(geometry, mat_or_col, positionArray, vectorArray, bounds, min_length = 0.1, max_length = 1, colormap = 'magnitude', animated = false) {
   // center at origin
   if (geometry instanceof THREE.BufferGeometry) {
     geometry.center();
   }
   else {
-    console.warn(`buildVectorFieldMeshes: geometry is not a BufferGeometry, got ${geometry.constructor.name}`);
+    console.warn(`buildVectorFieldMesh: geometry is not a BufferGeometry, got ${geometry.constructor.name}`);
     return null;
   }
 
   if (!(mat_or_col instanceof THREE.Material) && !(typeof mat_or_col === 'string')) {
-    console.warn(`buildVectorFieldMeshes: material is not a THREE.Material or string, got ${mat_or_col.constructor.name}`);
+    console.warn(`buildVectorFieldMesh: material is not a THREE.Material or string, got ${mat_or_col.constructor.name}`);
     return null;
   }
 
   if (!Array.isArray(positionArray) || !Array.isArray(vectorArray)) {
-    console.warn(`buildVectorFieldMeshes: positionArray and vectorArray must be arrays, got ${typeof positionArray}, ${typeof vectorArray}`);
+    console.warn(`buildVectorFieldMesh: positionArray and vectorArray must be arrays, got ${typeof positionArray}, ${typeof vectorArray}`);
     return null;
   }
 
   if (positionArray.length !== vectorArray.length) {
-    console.warn(`buildVectorFieldMeshes: positionArray and vectorArray must have the same length, got ${positionArray.length}, ${vectorArray.length}`);
+    console.warn(`buildVectorFieldMesh: positionArray and vectorArray must have the same length, got ${positionArray.length}, ${vectorArray.length}`);
     return null;
   }
 
   if (vectorArray.length === 0 || positionArray.length === 0) {
-    console.warn(`buildVectorFieldMeshes: positionArray and vectorArray must not be empty`);
+    console.warn(`buildVectorFieldMesh: positionArray and vectorArray must not be empty`);
     return null;
   }
 
   if (vectorArray.some(v => !(v instanceof THREE.Vector3))) {
-    console.warn(`buildVectorFieldMeshes: vectorArray must contain THREE.Vector3 instances only`);
+    console.warn(`buildVectorFieldMesh: vectorArray must contain THREE.Vector3 instances only`);
     return null;
   }
 
-  const count = positionArray.length;
-  const mesh = new THREE.InstancedMesh(geometry.rotateX(Math.PI / 2), (mat_or_col instanceof THREE.Material) ? mat_or_col : null, count);
+  const mesh = new THREE.InstancedMesh(geometry.rotateX(Math.PI / 2), (mat_or_col instanceof THREE.Material) ? mat_or_col : null, positionArray.length);
   // Benchmarks for normalization and coloring
   const lengths = vectorArray.map(v => v.length());
   const min_vec_len = Math.min(...lengths);
   const max_vec_len = Math.max(...lengths);
   
-  buildVectorFieldMeshesCPU(mesh, mat_or_col, positionArray, vectorArray, ...bounds, min_vec_len, max_vec_len, min_length, max_length, colormap, animated);
+  buildVectorFieldMeshCPU(mesh, mat_or_col, positionArray, vectorArray, ...bounds, min_vec_len, max_vec_len, min_length, max_length, colormap, animated);
   return mesh;
 }
 
@@ -473,7 +513,7 @@ function buildVectorFieldMeshes(geometry, mat_or_col, positionArray, vectorArray
  * @param {boolean} animated - Whether the field will be animated.
  * @returns 
  */
-function buildVectorFieldMeshesCPU(mesh, mat_or_col, positionArray, vectorArray, min_x, min_y, min_z, max_x, max_y, max_z, min_vec_len, max_vec_len, min_length = 0.1, max_length = 1, colormap = 'magnitude', animated = false) {
+function buildVectorFieldMeshCPU(mesh, mat_or_col, positionArray, vectorArray, min_x, min_y, min_z, max_x, max_y, max_z, min_vec_len, max_vec_len, min_length = 0.1, max_length = 1, colormap = 'magnitude', animated = false) {
   const count = positionArray.length;
   const instanceValues = new Float32Array(count); // to store normalized vector lengths
 
@@ -511,7 +551,6 @@ function buildVectorFieldMeshesCPU(mesh, mat_or_col, positionArray, vectorArray,
   }
   else {
     mesh.geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(instanceValues, 1));
-    
   }
 
   switch (mat_or_col) {
@@ -555,63 +594,78 @@ function buildVectorFieldMeshesCPU(mesh, mat_or_col, positionArray, vectorArray,
   return mesh;
 }
 
+
+function buildScalarFieldMesh(mat_or_col, positionArray, valueArray, bounds, colormap = 'magnitude', shape = null, animated = false) {
+  if (!(mat_or_col instanceof THREE.Material) && !(typeof mat_or_col === 'string')) {
+    console.warn(`buildScalarFieldMesh: material is not a THREE.Material or string, got ${mat_or_col.constructor.name}`);
+    return null;
+  }
+
+  if (!Array.isArray(positionArray) || !Array.isArray(valueArray)) {
+    console.warn(`buildScalarFieldMesh: positionArray and valueArray must be arrays, got ${typeof positionArray}, ${typeof valueArray}`);
+    return null;
+  }
+
+  if ((positionArray[0] instanceof THREE.Vector3 || positionArray[0] instanceof THREE.Vector2) && positionArray.length !== valueArray.length) {
+    console.warn(`buildScalarFieldMesh: positionArray and valueArray must have the same length, got ${positionArray.length}, ${valueArray.length}`);
+    return null;
+  }
+
+  if (valueArray.length === 0 || positionArray.length === 0) {
+    console.warn(`buildScalarFieldMesh: positionArray and vectorArray must not be empty`);
+    return null;
+  }
+
+  //if (valueArray.some(v => !(typeof v === 'number'))) {
+  //  console.warn(`buildScalarFieldMesh: valueArray must contain numbers only`);
+  //  return null;
+  //}
+
+  return buildScalarFieldMeshGPU(positionArray, valueArray, bounds, colormap, animated, shape);
+}
+
 /**
  * Builds a scalar field mesh, offloading computations to the GPU.
  */
-function buildScalarFieldMeshGPU(fieldArray, bounds, animated = false) {
-  if (!(fieldArray[0] instanceof THREE.Vector4 || fieldArray[0] instanceof THREE.Vector3)) {
-    console.warn(`buildScalarFieldMeshGPU: fieldArray must contain THREE.Vector4 or THREE.Vector3 instances, got ${fieldArray[0].constructor.name}`);
+function buildScalarFieldMeshGPU(positionArray, valueArray, bounds, colormap, animated, shape) {
+  if (!Array.isArray(valueArray) || (valueArray.length !== positionArray.length && valueArray.length !== positionArray.length / 3)) {
+    console.warn(`buildScalarFieldMeshGPU: valueArray must be an array with the same length as positionArray, got ${valueArray.length} vs ${positionArray.length}`);
+    return null;
+  }
+  //if (!valueArray.every(v => typeof v === 'number')) {
+  //  console.warn(`buildScalarFieldMeshGPU: valueArray must contain numbers only, got ${valueArray[0].constructor.name}`);
+  //  return null;
+  //}
+
+  const geometry = new THREE.BufferGeometry();
+
+  if (typeof positionArray[0] !== "Number") { // flat array
+    if (!shape || shape.length > 3) {
+      console.warn(`buildScalarFieldMeshGPU: positionArray must be a flat array with shape [nx,ny,nz], got ${shape}`);
+      return null;
+    }
+  } else {
+    console.warn(`buildScalarFieldMeshGPU: positionArray must be a flat array, got ${positionArray[0].constructor.name}`);
     return null;
   }
 
-  const count = fieldArray.length;
-
-  if (fieldArray[0] instanceof THREE.Vector4) { // 3D scalar field
-    const geometry = new THREE.BufferGeometry();
-    const points = new Float32Array(count * 3);
-    const values = new Float32Array(count * count * count);
-    for (let i = 0; i < count; i++) {
-      const p = fieldArray[i];
-      points.set([p.x, p.y, p.z], i * 3);
-      values[p.x + p.y * width + p.z * width * height] = p.w; // Assuming w is the scalar value
-    }
-
-    if (animated) {
-      geometry.setAttribute('point', new THREE.BufferAttribute(points, 3)).setUsage(THREE.DynamicDrawUsage);
-      geometry.attributes.point.needsUpdate = true;
-    } else {
-      geometry.setAttribute('point', new THREE.BufferAttribute(points, 3));
-    }
-
-    const scalarTex = new THREE.DataTexture3D(values, count, count, count);
-    scalarTex.format = THREE.RedFormat;
-    scalarTex.type = THREE.FloatType;
-    scalarTex.minFilter = scalarTex.magFilter = THREE.LinearFilter;
-    scalarTex.unpackAlignment = 1;
-    scalarTex.needsUpdate = true;
-    
-    const material = infernoGPU(scalarTex, ...bounds);
-    return new THREE.Mesh(geometry, material);
-
-
-  } else { // 2D scalar field
-    const geometry = new THREE.BufferGeometry();
-    const points = new Float32Array(count * 2);
-    const values = new Float32Array(count * count);
-    for (let i = 0; i < count; i++) {
-      const p = fieldArray[i];
-      points.set([p.x, p.y], i * 2);
-      values[p.x + p.y * width] = p.z; // Assuming z is the scalar value
-    }
-
-    if (animated) {
-      geometry.setAttribute('point', new THREE.BufferAttribute(points, 2)).setUsage(THREE.DynamicDrawUsage);
-      geometry.attributes.point.needsUpdate = true;
-    } else {
-      geometry.setAttribute('point', new THREE.BufferAttribute(points, 2));
-    }
-    // TODO: Implement 2D scalar field texture handling
-
-    return null;
+  if (animated) {
+    geometry.setAttribute('point', new THREE.BufferAttribute(new Float32Array(positionArray), 3)).setUsage(THREE.DynamicDrawUsage);
+    geometry.attributes.point.needsUpdate = true;
+    //geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(valueArray, 1)).setUsage(THREE.DynamicDrawUsage);
+    //geometry.attributes.instanceValue.needsUpdate = true;
+  } else {
+    geometry.setAttribute('point', new THREE.BufferAttribute(new Float32Array(positionArray), 3));
+    //geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(valueArray, 1));
   }
+
+  const scalarTex = new THREE.DataTexture(new Float32Array(valueArray), ...shape);
+  scalarTex.format = THREE.RedFormat;
+  scalarTex.type = THREE.FloatType;
+  scalarTex.minFilter = scalarTex.magFilter = THREE.LinearFilter;
+  scalarTex.unpackAlignment = 1;
+  scalarTex.needsUpdate = animated;
+
+  const material = inferno_volumetric(scalarTex, ...bounds);
+  return new THREE.Mesh(geometry, material);
 }
