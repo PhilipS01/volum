@@ -10,7 +10,7 @@ class Contour(SceneObject):
     color_schemes = ["viridis", "magma", "plasma", "inferno", "cividis"]
     colormaps = ["x", "y", "z"]
 
-    def __init__(self, *args: Union[np.typing.NDArray[np.float64], List[float]], material: MeshMaterial = BasicMaterial(), **kwargs):
+    def __init__(self, *args: Union[np.ndarray, List[float]], material: Optional[MeshMaterial] = None, **kwargs):
         """Contour plot constructor with flexible input handling.
 
         Args:
@@ -30,17 +30,21 @@ class Contour(SceneObject):
         assert args, "At least one argument is required for Contour"
         self.shape = kwargs.get('shape', None)
 
+        if material is None:
+            material = BasicMaterial()
+
         # Handle input cases
-        if len(args) == 4:  # [X, Y, Z, W]
-            X, Y, Z, W = map(np.asarray, args)
+        if 3 <= len(args) <= 4:  # [X, Y, Z, W]
+            if len(args) == 4:
+                X, Y, Z, W = map(np.asarray, args)
+            else:
+                X, Y, Z = map(np.asarray, args)
+                W = Z
 
             # Validate shapes
             if not X.shape == Y.shape == Z.shape:
                 raise ValueError("All points in the array must have the same shape.")
-            
-            if not W.shape[1] == 1:
-                raise ValueError("W must be a 1D array representing scalar values.")
-            
+                        
             if not len(W) == len(X) == len(Y) == len(Z):
                 raise ValueError("X, Y, Z and W must have the same length.")
             
@@ -54,9 +58,6 @@ class Contour(SceneObject):
             self.points = pts
             self.values = W
             self.shape = (int((len(X))**(1/3)+1), int((len(Y))**(1/3)+1), int((len(Z))**(1/3)+1)) if self.shape is None else self.shape
-
-        elif len(args) == 3:  # [X, Y, Z=W]
-            ...
         
         elif len(args) == 2:  # single stream of points (e.g. once serialized)
             if not self.shape:
@@ -107,7 +108,12 @@ class Contour(SceneObject):
         self._title = value
 
     def to_dict(self):
-        values = self.values.reshape(self.shape).astype(np.float32).flatten(order='C').tolist() if len(self.values) != len(self.points)*3 else self.values.flatten(order='C').tolist()
+        if np.asarray(self.values).ndim == 3:  # X, Y, Z meshgrid
+            values = self.values.transpose(2, 1, 0).flatten().astype(np.float32).tolist()
+        elif np.asarray(self.values).ndim == 2:  # X, Y meshgrid
+            values = self.values.flatten().astype(np.float32).tolist()
+        else:  # Single-dimensional or other cases
+            values = self.values.tolist()
         return {
             "type": "Contour",
             "material": self.material.to_dict() if self.material else None,

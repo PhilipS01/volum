@@ -1,6 +1,8 @@
 import * as THREE from './three-proxy.js';
 import { threetone } from '/static/assets/index.js';
 import { viridis, magma, plasma, inferno, inferno_volumetric } from './shaders/index.js';
+import { surfaceNets } from './three-proxy.js';
+import { Animation, animations } from './live_client.js';
 
 
 // Map object types to geometry constructors or custom builders
@@ -172,6 +174,9 @@ export async function loadSceneFromJSON(sceneJSON, scene) {
         threeObject.material.needsUpdate = true; // ensure material is updated
       }
       scene.add(threeObject);
+    } else {
+      console.warn(`Failed to build object of type ${obj.type} with properties`, obj);
+      continue; // skip this object if it failed to build
     }
     console.log(`Added object: ${obj.type}`, threeObject);
   }
@@ -365,8 +370,7 @@ async function buildObject(obj) {
 
     console.assert(mat_or_col, "Quiver: material must be defined");
 
-    console.log(obj.bounds, "Quiver bounds");
-    return buildScalarFieldMesh(mat_or_col, positionArray, valueArray, obj.bounds, obj.colormap ?? 'magnitude', obj.shape);
+    return buildScalarFieldMesh(mat_or_col, positionArray, valueArray, ...obj.bounds, obj.colormap ?? 'magnitude', obj.shape);
   }
 
   else {
@@ -595,7 +599,7 @@ function buildVectorFieldMeshCPU(mesh, mat_or_col, positionArray, vectorArray, m
 }
 
 
-function buildScalarFieldMesh(mat_or_col, positionArray, valueArray, bounds, colormap = 'magnitude', shape = null, animated = false) {
+function buildScalarFieldMesh(mat_or_col, positionArray, valueArray, min_x, min_y, min_z, max_x, max_y, max_z, colormap = 'magnitude', shape = null, animated = false) {
   if (!(mat_or_col instanceof THREE.Material) && !(typeof mat_or_col === 'string')) {
     console.warn(`buildScalarFieldMesh: material is not a THREE.Material or string, got ${mat_or_col.constructor.name}`);
     return null;
@@ -609,6 +613,9 @@ function buildScalarFieldMesh(mat_or_col, positionArray, valueArray, bounds, col
   if ((positionArray[0] instanceof THREE.Vector3 || positionArray[0] instanceof THREE.Vector2) && positionArray.length !== valueArray.length) {
     console.warn(`buildScalarFieldMesh: positionArray and valueArray must have the same length, got ${positionArray.length}, ${valueArray.length}`);
     return null;
+  } else if (!Array.isArray(valueArray) || (valueArray.length !== positionArray.length && valueArray.length !== positionArray.length / 3)) {
+    console.warn(`buildScalarFieldMeshGPU: valueArray must be an array with the same length as positionArray, got ${valueArray.length} vs ${positionArray.length}`);
+    return null;
   }
 
   if (valueArray.length === 0 || positionArray.length === 0) {
@@ -621,51 +628,32 @@ function buildScalarFieldMesh(mat_or_col, positionArray, valueArray, bounds, col
   //  return null;
   //}
 
-  return buildScalarFieldMeshGPU(positionArray, valueArray, bounds, colormap, animated, shape);
-}
+  console.assert(mat_or_col instanceof THREE.Material, "buildScalarFieldMesh: material must be defined");
+  // assuming scalarData Float32Array, size N, bounds defined
 
-/**
- * Builds a scalar field mesh, offloading computations to the GPU.
- */
-function buildScalarFieldMeshGPU(positionArray, valueArray, bounds, colormap, animated, shape) {
-  if (!Array.isArray(valueArray) || (valueArray.length !== positionArray.length && valueArray.length !== positionArray.length / 3)) {
-    console.warn(`buildScalarFieldMeshGPU: valueArray must be an array with the same length as positionArray, got ${valueArray.length} vs ${positionArray.length}`);
-    return null;
-  }
-  //if (!valueArray.every(v => typeof v === 'number')) {
-  //  console.warn(`buildScalarFieldMeshGPU: valueArray must contain numbers only, got ${valueArray[0].constructor.name}`);
-  //  return null;
-  //}
+  const [nx, ny, nz] = shape || [Math.cbrt(valueArray.length), Math.cbrt(valueArray.length), Math.cbrt(valueArray.length)];
+  const dims = [nx, ny, nz]; // should match your shape
+  const threshold = 0;
+  const field = valueArray.map(v => v - threshold);
+  
+  const result = surfaceNets(dims, (x, y, z) => field[x + y * nx + z * nx * ny]);
 
-  const geometry = new THREE.BufferGeometry();
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(result.positions.flat(), 3));
+  geo.setIndex(result.cells.flat());
+  geo.computeVertexNormals();
 
-  if (typeof positionArray[0] !== "Number") { // flat array
-    if (!shape || shape.length > 3) {
-      console.warn(`buildScalarFieldMeshGPU: positionArray must be a flat array with shape [nx,ny,nz], got ${shape}`);
-      return null;
-    }
-  } else {
-    console.warn(`buildScalarFieldMeshGPU: positionArray must be a flat array, got ${positionArray[0].constructor.name}`);
-    return null;
-  }
+  const mesh = new THREE.Mesh(geo, mat_or_col instanceof THREE.Material ? mat_or_col : null);
+  mesh.position.set(
+    -Math.abs(max_x - min_x) / 2,
+    -Math.abs(max_y - min_y) / 2,
+    -Math.abs(max_z - min_z) / 2
+  );
+  mesh.scale.set(
+    (max_x - min_x) / nx,
+    (max_y - min_y) / ny,
+    (max_z - min_z) / nz
+  );
 
-  if (animated) {
-    geometry.setAttribute('point', new THREE.BufferAttribute(new Float32Array(positionArray), 3)).setUsage(THREE.DynamicDrawUsage);
-    geometry.attributes.point.needsUpdate = true;
-    //geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(valueArray, 1)).setUsage(THREE.DynamicDrawUsage);
-    //geometry.attributes.instanceValue.needsUpdate = true;
-  } else {
-    geometry.setAttribute('point', new THREE.BufferAttribute(new Float32Array(positionArray), 3));
-    //geometry.setAttribute('instanceValue', new THREE.InstancedBufferAttribute(valueArray, 1));
-  }
-
-  const scalarTex = new THREE.DataTexture(new Float32Array(valueArray), ...shape);
-  scalarTex.format = THREE.RedFormat;
-  scalarTex.type = THREE.FloatType;
-  scalarTex.minFilter = scalarTex.magFilter = THREE.LinearFilter;
-  scalarTex.unpackAlignment = 1;
-  scalarTex.needsUpdate = animated;
-
-  const material = inferno_volumetric(scalarTex, ...bounds);
-  return new THREE.Mesh(geometry, material);
+  return mesh;
 }

@@ -10,7 +10,7 @@ class Quiver(SceneObject):
     color_schemes = ["viridis", "magma", "plasma", "inferno", "cividis"]
     colormaps = ["magnitude", "x", "y", "z"]
 
-    def __init__(self, *args: Union[np.typing.NDArray[np.float64], List[float]], object: SceneObject = Cone(.1, .3, radial_segments=12), min_length: float = 1.0, max_length: float = 5.0, **kwargs):
+    def __init__(self, *args: Union[np.ndarray, List[float]], object: SceneObject = Cone(.1, .3, radial_segments=12), min_length: float = 1.0, max_length: float = 5.0, **kwargs):
         """Quiver plot constructor with flexible input handling and support for various arrow objects.
     
         Args:

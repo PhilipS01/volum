@@ -1,4 +1,4 @@
-body { margin: 0; overflow: hidden; position: relative; font-family: "Ubuntu", sans-serif; }
+body { margin: 0; overflow: hidden; position: relative; font-family: "Ubuntu", sans-serif; -webkit-user-drag: none; user-select: none; -moz-user-select: none;}
 canvas { display: block; }
 
 #ui-overlay {
