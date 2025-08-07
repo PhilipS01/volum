@@ -167,18 +167,22 @@ export async function loadSceneFromJSON(sceneJSON, scene) {
   // Objects
   console.log(sceneJSON.objects.length, "objects in scene");
   for (const obj of sceneJSON.objects) {
-    const threeObject = await buildObject(obj);
-    if (threeObject) {
-      if (threeObject.material && 'envMap' in threeObject.material) {
-        threeObject.material.envMap = scene.environment; // set environment map for physical materials
-        threeObject.material.needsUpdate = true; // ensure material is updated
-      }
-      scene.add(threeObject);
+    let threeObjects = await buildObject(obj);
+
+    if (threeObjects) {
+      if (!Array.isArray(threeObjects)) threeObjects = [threeObjects];
+      threeObjects.forEach(threeObject => {
+        if (threeObject.material && 'envMap' in threeObject.material) {
+          threeObject.material.envMap = scene.environment; // set environment map for physical materials
+          threeObject.material.needsUpdate = true; // ensure material is updated
+        }
+        scene.add(threeObject);
+        console.log(`Added object: ${obj.type}`, threeObject);
+      });
     } else {
-      console.warn(`Failed to build object of type ${obj.type} with properties`, obj);
+      console.warn(`Failed to build object(s) of type ${obj.type} with properties`, obj);
       continue; // skip this object if it failed to build
     }
-    console.log(`Added object: ${obj.type}`, threeObject);
   }
 }
 
@@ -349,28 +353,27 @@ async function buildObject(obj) {
     }
 
 
-    // reconstruct points using shape and convert positions and vectors to THREE.Vector3
-    const shape = obj.shape ? obj.shape : [(obj.args[0].length) ** (1/3), (obj.args[0].length) ** (1/3), (obj.args[0].length) ** (1/3)];
-    if (!Array.isArray(shape) || shape.length !== 3 || shape[0] <= 0 || shape[1] <= 0 || shape[2] <= 0) {
-      console.warn(`Quiver: Invalid shape: ${shape}`);
-      return null;
-    }
-
     const positionArray = obj.args[0]
     const valueArray = obj.args[1];
 
-    //if (positionArray.length !== valueArray.length) {
-    //  console.warn(`Quiver: positionArray and valueArray must have the same length, got ${positionArray.length}, ${valueArray.length}`);
-    //  return null;
-    //}
-    if (positionArray.length === 0 || valueArray.length === 0) {
-      console.warn(`Quiver: positionArray and valueArray must not be empty`);
+    if (valueArray.length === 0) {
+      console.warn(`Contour: valueArray must not be empty`);
       return null;
     }
 
-    console.assert(mat_or_col, "Quiver: material must be defined");
+    let shape = null;
+    // reconstruct points using shape and convert positions and vectors to THREE.Vector3
+    if (positionArray.length > 0)  {
+      shape = obj.shape ? obj.shape : [(obj.args[0].length) ** (1/3), (obj.args[0].length) ** (1/3), (obj.args[0].length) ** (1/3)];
+      if (!Array.isArray(shape) || shape.length !== 3 || shape[0] <= 0 || shape[1] <= 0 || shape[2] <= 0) {
+        console.warn(`Contour: Invalid shape: ${shape}`);
+        return null;
+      }
+    }
 
-    return buildScalarFieldMesh(mat_or_col, positionArray, valueArray, ...obj.bounds, obj.colormap ?? 'magnitude', obj.shape);
+    console.assert(mat_or_col, "Contour: material must be defined");
+
+    return buildScalarFieldMesh(mat_or_col, positionArray.length > 0 ? positionArray : null, valueArray, obj.levels, ...obj.bounds ?? [0], obj.colormap ?? 'magnitude', shape);
   }
 
   else {
@@ -599,30 +602,31 @@ function buildVectorFieldMeshCPU(mesh, mat_or_col, positionArray, vectorArray, m
 }
 
 
-function buildScalarFieldMesh(mat_or_col, positionArray, valueArray, min_x, min_y, min_z, max_x, max_y, max_z, colormap = 'magnitude', shape = null, animated = false) {
-  if (!(mat_or_col instanceof THREE.Material) && !(typeof mat_or_col === 'string')) {
-    console.warn(`buildScalarFieldMesh: material is not a THREE.Material or string, got ${mat_or_col.constructor.name}`);
-    return null;
-  }
+function buildScalarFieldMesh(mat_or_col, positionArray, valueArray, levels, min_x, min_y, min_z, max_x, max_y, max_z, colormap = 'magnitude', shape = null, animated = false) {
+  if (positionArray != null) {
+    if (!(mat_or_col instanceof THREE.Material) && !(typeof mat_or_col === 'string')) {
+      console.warn(`buildScalarFieldMesh: material is not a THREE.Material or string, got ${mat_or_col.constructor.name}`);
+      return null;
+    }
 
-  if (!Array.isArray(positionArray) || !Array.isArray(valueArray)) {
-    console.warn(`buildScalarFieldMesh: positionArray and valueArray must be arrays, got ${typeof positionArray}, ${typeof valueArray}`);
-    return null;
-  }
+    if (!Array.isArray(positionArray) || !Array.isArray(valueArray)) {
+      console.warn(`buildScalarFieldMesh: positionArray and valueArray must be arrays, got ${typeof positionArray}, ${typeof valueArray}`);
+      return null;
+    }
 
-  if ((positionArray[0] instanceof THREE.Vector3 || positionArray[0] instanceof THREE.Vector2) && positionArray.length !== valueArray.length) {
-    console.warn(`buildScalarFieldMesh: positionArray and valueArray must have the same length, got ${positionArray.length}, ${valueArray.length}`);
-    return null;
-  } else if (!Array.isArray(valueArray) || (valueArray.length !== positionArray.length && valueArray.length !== positionArray.length / 3)) {
-    console.warn(`buildScalarFieldMeshGPU: valueArray must be an array with the same length as positionArray, got ${valueArray.length} vs ${positionArray.length}`);
-    return null;
-  }
+    if ((positionArray[0] instanceof THREE.Vector3 || positionArray[0] instanceof THREE.Vector2) && positionArray.length !== valueArray.length) {
+      console.warn(`buildScalarFieldMesh: positionArray and valueArray must have the same length, got ${positionArray.length}, ${valueArray.length}`);
+      return null;
+    } else if (!Array.isArray(valueArray) || (valueArray.length !== positionArray.length && valueArray.length !== positionArray.length / 3)) {
+      console.warn(`buildScalarFieldMeshGPU: valueArray must be an array with the same length as positionArray, got ${valueArray.length} vs ${positionArray.length}`);
+      return null;
+    }
 
-  if (valueArray.length === 0 || positionArray.length === 0) {
-    console.warn(`buildScalarFieldMesh: positionArray and vectorArray must not be empty`);
-    return null;
+    if (valueArray.length === 0 || positionArray.length === 0) {
+      console.warn(`buildScalarFieldMesh: positionArray and vectorArray must not be empty`);
+      return null;
+    } 
   }
-
   //if (valueArray.some(v => !(typeof v === 'number'))) {
   //  console.warn(`buildScalarFieldMesh: valueArray must contain numbers only`);
   //  return null;
@@ -633,27 +637,31 @@ function buildScalarFieldMesh(mat_or_col, positionArray, valueArray, min_x, min_
 
   const [nx, ny, nz] = shape || [Math.cbrt(valueArray.length), Math.cbrt(valueArray.length), Math.cbrt(valueArray.length)];
   const dims = [nx, ny, nz]; // should match your shape
-  const threshold = 0;
-  const field = valueArray.map(v => v - threshold);
-  
-  const result = surfaceNets(dims, (x, y, z) => field[x + y * nx + z * nx * ny]);
+  let meshes = [];
 
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(result.positions.flat(), 3));
-  geo.setIndex(result.cells.flat());
-  geo.computeVertexNormals();
+  levels.forEach(l => {
+    const field = valueArray.map(v => v - l);
+    
+    const result = surfaceNets(dims, (x, y, z) => field[x + y * nx + z * nx * ny]);
 
-  const mesh = new THREE.Mesh(geo, mat_or_col instanceof THREE.Material ? mat_or_col : null);
-  mesh.position.set(
-    -Math.abs(max_x - min_x) / 2,
-    -Math.abs(max_y - min_y) / 2,
-    -Math.abs(max_z - min_z) / 2
-  );
-  mesh.scale.set(
-    (max_x - min_x) / nx,
-    (max_y - min_y) / ny,
-    (max_z - min_z) / nz
-  );
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(result.positions.flat(), 3));
+    geo.setIndex(result.cells.flat());
+    geo.computeVertexNormals();
 
-  return mesh;
+    const mesh = new THREE.Mesh(geo, mat_or_col instanceof THREE.Material ? mat_or_col : null);
+    mesh.position.set(
+      -Math.abs(max_x - min_x) / 2,
+      -Math.abs(max_y - min_y) / 2,
+      -Math.abs(max_z - min_z) / 2
+    );
+    mesh.scale.set(
+      (max_x - min_x) / (nx-1),
+      (max_y - min_y) / (ny-1),
+      (max_z - min_z) / (nz-1)
+    );
+    meshes.push(mesh);
+  });
+
+  return meshes;
 }

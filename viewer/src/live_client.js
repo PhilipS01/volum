@@ -332,10 +332,30 @@ function onWindowResize() {
     renderer.setSize(innerWidth, innerHeight);
 }
 
+export class Animation {
+    constructor(func) {
+        this.func = func;
+    }
+    
+    update(t) {
+        this.func(t);
+    }
+}
+
 const clock = new THREE.Clock();
+let time = 0;
+
+export let animations = [] // where functions for all scene animations are stored
 
 function animate() {
     requestAnimationFrame(animate);
+
+    // handle all animations
+    time += 0.01;
+    //material.uniforms.uThreshold.value = 0.3 + 0.2 * Math.sin(time); // animated threshold
+    animations.forEach(anim => {
+        anim.update(time)
+    });
 
     if (controls != null && controls instanceof PointerLockControls && controls.isLocked) {
         const delta = clock.getDelta();
