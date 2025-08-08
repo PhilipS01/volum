@@ -63,9 +63,10 @@ class Scene:
             setattr(obj, '_id', obj_id) # set the id (SceneObject should provide an id attribute)
             self.objects[obj_id] = obj
 
-    def serialize(self):
+    def serialize(self, file_name):
         """Serialize the scene to a dictionary."""
         return {
+            "file": file_name,
             "plugins": [plugin.name for plugin in self.plugins],
             "objects": [obj.to_dict() for obj in self.objects.values()] + [mat.to_dict() for mat in self.materials.materials.values()],
         }
@@ -79,7 +80,7 @@ class Scene:
         """Save the current scene to a JSON file."""
         import json
         with open(path, 'w') as f:
-            json.dump(self.serialize(), f, indent=2)
+            json.dump(self.serialize(path.split("/")[-1].split("\\")[-1]), f, indent=2)
 
     def __getitem__(self, key: str):
         """Get a scene object by its ID. Not including materials."""

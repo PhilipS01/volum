@@ -1,3 +1,7 @@
+/**
+ * Scene loader for Volum viewer
+ * This file is part of the Volum project https://github.com/PhilipS01/volum.
+ */
 import * as THREE from './three-proxy.js';
 import { threetone } from '/static/assets/index.js';
 import { viridis, magma, plasma, inferno, inferno_volumetric } from './shaders/index.js';
@@ -177,6 +181,10 @@ export async function loadSceneFromJSON(sceneJSON, scene) {
           threeObject.material.needsUpdate = true; // ensure material is updated
         }
         scene.add(threeObject);
+        threeObject.meta = {
+          name: obj.type,
+          material: obj.material ? obj.material.type : ''
+        };
         console.log(`Added object: ${obj.type}`, threeObject);
       });
     } else {

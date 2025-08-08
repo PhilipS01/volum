@@ -29,7 +29,7 @@ def create_scene(payload: ScenePayload):
 
 @router.get("/", summary="Get the current scene as JSON")
 def get_scene():
-    return scene.serialize()
+    return scene.serialize(file_name=str(SCENE_PATH).split("/")[-1].split("\\")[-1] if SCENE_PATH else "Untitled Scene")
 
 @router.put("/object/{object_id}", summary="Update a single object by ID")
 def update_object(object_id: str, update: SceneObjectPayload):

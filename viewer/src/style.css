@@ -6,6 +6,8 @@ canvas { display: block; }
   top: 20px;
   left: 20px;
   z-index: 100;
+}
+.ui-panel {
   display: grid;
   grid-template-columns: 24px 1fr 70px;
   gap: 8px 12px;
@@ -14,6 +16,9 @@ canvas { display: block; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   border-radius: 8px;
   padding: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
 }
 .settings-row {
   display: contents;
@@ -25,6 +30,29 @@ canvas { display: block; }
 .settings-row label {
   grid-column: 2; /* Label in the second column */
   user-select: none;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+.inspect-row {
+  display: contents;
+  line-height: 1.44em;
+}
+.inspect-row input[type="checkbox"] {
+  grid-column: 1; /* Checkbox in the first column */
+}
+.inspect-row label {
+  grid-column: 2; /* Label in the second column */
+  user-select: none;
+  margin-top: auto;
+  margin-bottom: auto;
+  cursor: pointer;
+}
+.inspect-row span  {
+  grid-column: 3; /* Span in the third column */
+  text-align: right;
+  font-size: 0.86em;
+  color: #ccc;
+  font-style: italic;
   margin-top: auto;
   margin-bottom: auto;
 }
@@ -161,14 +189,14 @@ canvas { display: block; }
 }
 
 .view-control input[type="checkbox"] + label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    background: rgba(138,138,150, 0.7);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    transition: background 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(138,138,150, 0.7);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background 0.2s ease-in-out;
 }
 
 .view-control input[type="checkbox"] + label:hover {
@@ -199,4 +227,12 @@ input[type="checkbox"]:checked {
 
 input[type="checkbox"][disabled] {
   background: gray;
+}
+
+.expandable {
+  cursor: pointer;
+}
+/* select parent ui-panel on hover */
+.expandable:hover {
+  color:rgba(255, 255, 255, .6);
 }

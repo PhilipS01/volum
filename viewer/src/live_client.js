@@ -1,3 +1,7 @@
+/**
+ * Live client for Volum viewer
+ * This file is part of the Volum project https://github.com/PhilipS01/volum.
+ */
 import * as THREE               from '/static/three-proxy.js';
 import { PointerLockControls }  from '/static/three-proxy.js';
 import { OrbitControls }        from '/static/three-proxy.js';
@@ -84,7 +88,7 @@ checkboxShadows.addEventListener('change', (e) => {
 });
 
 const checkboxGrid =  document.getElementById('checkbox-grid');
-checkboxGrid.checked = true;
+checkboxGrid.checked = false;
 checkboxGrid.addEventListener('change', (e) => {
     const enabled = e.target.checked;
     toggleGridHelper(scene, enabled);
@@ -320,11 +324,80 @@ ws.onclose = () => console.warn('Live socket closed');
     toggleGridHelper(scene, checkboxGrid.checked); // grid helper
     toggleAxesHelper(scene, checkboxAxes.checked); // axes helper
     enableOrbitControls(); // default controls
+    populateSceneInspector();
+
+    if (json.file) {
+        const fileName = json.file;
+        document.getElementById('ui-title').textContent = fileName;
+    }
 
     onWindowResize();
     window.addEventListener('resize', onWindowResize);
     animate();
 })();
+
+
+function populateSceneInspector() {
+    const inspector = document.getElementById('scene-inspector');
+    inspector.innerHTML = '';
+
+    const heading = document.createElement('span');
+    heading.className = 'medium heading expandable';
+    heading.style.fontSize = '1em';
+    heading.style.marginBottom = '10px';
+    heading.textContent = 'Scene Objects';
+    heading.onclick = function() {
+        toggleInspector(this);
+    };
+
+    inspector.appendChild(heading);
+
+    let i = 0;
+    scene.traverse(obj => {
+        if (obj.isMesh) {
+            const item = document.createElement('div');
+            item.className = 'inspect-row light-italic';
+
+            const checkbox = document.createElement('input');
+            checkbox.addEventListener('change', (e) => {
+                obj.visible = e.target.checked;
+            });
+            checkbox.type = 'checkbox';
+            checkbox.id = `checkbox-${i}`;
+            checkbox.name = `checkbox-${i}`;
+            checkbox.checked = true;
+
+            const label = document.createElement('label');
+            label.htmlFor = `checkbox-${i++}`;
+            label.textContent = obj.meta.name;
+
+            const span = document.createElement('span');
+            span.className = 'light-italic subheading';
+            span.textContent = obj.type;
+
+            item.appendChild(checkbox);
+            item.appendChild(label);
+            item.appendChild(span);
+
+            inspector.appendChild(item);
+        }
+    });
+}
+
+function toggleInspector() {
+    const panel = document.getElementById('scene-inspector');
+    panel.classList.toggle('expanded');
+    panel.style.maxHeight = panel.classList.contains('expanded') ? '50vh' : '1.3em';
+    // disable checkbox and label interactions while hidden
+    const checkboxes = panel.querySelectorAll('div input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.style.pointerEvents = panel.classList.contains('expanded') ? 'auto' : 'none';
+    });
+    const labels = panel.querySelectorAll('div label');
+    labels.forEach(label => {
+        label.style.pointerEvents = panel.classList.contains('expanded') ? 'auto' : 'none';
+    });
+}
 
 function onWindowResize() {
     camera.aspect = innerWidth/innerHeight;
