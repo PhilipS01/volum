@@ -135,8 +135,17 @@ bgColorInput.value = '0x444444'; // Default gray color
 bgColorInput.addEventListener('change', (e) => {
     const color = parseInt(e.target.value, 16); // Convert hex string to number
     scene.background = new THREE.Color(color);
+    document.getElementById('version-info').style.color = getContrastColor(color);
     console.log(`Background color set to ${e.target.value}`);
 });
+
+function getContrastColor(hex) {
+    const r = (hex >> 16) & 0xff;
+    const g = (hex >> 8) & 0xff;
+    const b = (hex >> 0) & 0xff;
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 128 ? '#000000' : '#ffffff';
+}
 
 const preset_envs = {
     'indoor': indoorEnv,

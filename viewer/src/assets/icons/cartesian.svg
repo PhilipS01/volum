@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="167.50194mm"
+   height="167.52734mm"
+   viewBox="0 0 167.50194 167.52734"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <g
+     id="layer1"
+     transform="translate(-20.367899,-67.603148)">
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:6.04297;stroke-linejoin:round;stroke-dasharray:none"
+       id="rect1"
+       width="10.049937"
+       height="121.65034"
+       x="99.086388"
+       y="90.574814"
+       ry="5.0249686" />
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:6.043;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       id="rect1-6"
+       width="10.049937"
+       height="121.65034"
+       x="146.35187"
+       y="-164.91812"
+       ry="5.0249686"
+       transform="rotate(90)" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:6.043;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       id="path2"
+       d="m 124.30536,104.36843 -40.339812,0 20.169902,-34.935294 z"
+       transform="translate(-0.10086969,1.1912106)" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:6.043;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       id="path2-0"
+       d="m 124.30536,104.36843 -40.339812,0 20.169902,-34.935294 z"
+       transform="rotate(180,104.08535,150.77121)" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:6.043;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       id="path2-0-3"
+       d="m 124.30536,104.36843 -40.339812,0 20.169902,-34.935294 z"
+       transform="rotate(90,103.68845,150.59334)" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:6.043;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       id="path2-0-3-9"
+       d="m 124.30536,104.36843 -40.339812,0 20.169902,-34.935294 z"
+       transform="rotate(-90,104.56321,150.60725)" />
+  </g>
+</svg>

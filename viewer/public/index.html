@@ -66,15 +66,18 @@
   <div id="view-controls">
     <div class="view-control">
       <input type="checkbox" id="checkbox-orbit" name="btn-orbitcontrols" checked>
-      <label for="checkbox-orbit" data-tooltip="Toggle orbit controls (left-click drag to rotate, right-click drag to translate, scroll to zoom)">Orbit</label>
+      <label for="checkbox-orbit" data-tooltip="Toggle orbit controls (left-click drag to rotate, right-click drag to translate, scroll to zoom)"><img src="/static/assets/icons/orbit.svg" alt="Orbit"></label>
     </div>
     <div class="view-control">
       <input type="checkbox" id="checkbox-firstperson" name="btn-firstperson" unchecked>
-      <label for="checkbox-firstperson" data-tooltip="Toggle first-person controls (WASD to move, space to move up, shift to move down)">First Person</label>
+      <label for="checkbox-firstperson" data-tooltip="Toggle first-person controls (WASD to move, space to move up, shift to move down)"><img src="/static/assets/icons/cartesian.svg" alt="Cartesian"></label>
     </div>
   </div>
+  
+  <a href="https://github.com/PhilipS01/volum" target="_blank" id="version-info">Volum Viewer 1.0</a>
 </body>
 </html>
+
 <script>
   function toggleMainPanel() {
     const panel = document.getElementById('main-ui');
